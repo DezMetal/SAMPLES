@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Agent UI</title>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+    <link href="[https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;600&display=swap](https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;600&display=swap)" rel="stylesheet">
+    <style>
+        :root {
+            --font-header: 'Orbitron', sans-serif; --font-body: 'Roboto Mono', monospace;
+            --bg-main: #f3f4f6; --bg-panel: #ffffff; --text-main: #111827;
+            --text-light: #6b7280; --border-color: #e5e7eb; --accent-color: #4f46e5;
+        }
+        body { font-family: var(--font-header); background-color: var(--bg-main); color: var(--text-main); }
+        .font-body { font-family: var(--font-body); }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--border-color); }
+        ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+        .spinner-light { border-top-color: #fff; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { border: 2px solid rgba(0,0,0,0.2); width: 16px; height: 16px; border-radius: 50%; border-top-color: var(--text-main); animation: spin 1s ease infinite; }
+        .btn { transition: all 0.2s ease; }
+        .btn:active { transform: scale(0.97); }
+        .actions-bubble pre, .execution-bubble pre { white-space: pre-wrap; word-wrap: break-word; word-break: break-all; }
+        .left-panel-collapsed { width: 4rem !important; }
+        .left-panel-collapsed .nav-text, .left-panel-collapsed .project-list-header { display: none; }
+        .left-panel-collapsed .nav-item { justify-content: center; }
+    </style>
+</head>
+<body class="h-full">
+    <div id="app" class="flex h-screen antialiased">
+
+        <!-- Left Panel -->
+        <aside id="left-panel" class="bg-gray-800 text-white p-4 flex flex-col shrink-0 transition-all duration-300 w-64">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center nav-item">
+                    <i class="fas fa-robot text-3xl text-indigo-400 mr-3"></i>
+                    <h1 class="text-2xl font-bold nav-text">AutoAgent</h1>
+                </div>
+                <button id="toggle-nav-btn" class="text-gray-400 hover:text-white"><i class="fas fa-bars"></i></button>
+            </div>
+            <button id="new-project-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-2 px-4 rounded-lg mb-4 flex items-center justify-center btn nav-item">
+                <i class="fas fa-plus mr-2"></i><span class="nav-text">New Project</span>
+            </button>
+            <h2 class="text-xs font-bold uppercase text-gray-400 mb-2 px-2 project-list-header">Projects</h2>
+            <div id="project-list" class="flex-grow overflow-y-auto pr-2"></div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col min-w-0">
+            <main id="main-content" class="flex-grow p-4 md:p-6 flex flex-col bg-gray-100 overflow-y-auto">
+                <div id="welcome-view" class="flex flex-col items-center justify-center h-full text-center">
+                    <i class="fas fa-project-diagram text-6xl text-gray-400 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-gray-800">Welcome to AutoAgent</h2>
+                    <p class="text-gray-500 font-body">Select a project or create a new one.</p>
+                </div>
+
+                <div id="project-view" class="hidden h-full flex flex-col">
+                    <div id="control-header" class="bg-white rounded-lg shadow-lg p-4 mb-4 shrink-0"></div>
+                    <div id="activity-feed" class="flex-grow overflow-y-auto mb-4 pr-2 font-body bg-white rounded-lg shadow-lg p-4"></div>
+                    <div id="feedback-bar" class="shrink-0 pt-4">
+                        <div class="flex gap-4">
+                            <textarea id="feedback-input" class="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-body shadow-md" rows="1" placeholder="Provide guidance and press Enter..."></textarea>
+                            <button id="send-feedback-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg btn shadow-md">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- Right Panel -->
+        <aside id="right-panel" class="w-96 bg-white p-4 flex-col shrink-0 border-l border-gray-200 shadow-lg hidden lg:flex">
+            <div id="workspace-container" class="flex flex-col h-full">
+                <h2 class="text-lg font-bold uppercase text-gray-800 mb-4">Workspace</h2>
+                <div id="active-processes-container" class="mb-4"></div>
+                <div id="file-listing" class="flex-grow overflow-y-auto font-mono text-sm pr-2 bg-gray-50 p-2 rounded-md min-h-0"></div>
+                <div id="import-container" class="pt-4 mt-4 border-t border-gray-200">
+                    <label class="text-sm font-bold text-gray-600">Import Source</label>
+                    <div class="flex gap-2 mt-1">
+                        <input id="source-path" type="text" placeholder="Absolute path to file/folder" class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 font-body text-xs">
+                        <button id="import-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold p-2 rounded-lg btn"><i class="fas fa-upload"></i></button>
+                    </div>
+                </div>
+                <div id="project-actions" class="pt-4 mt-4 border-t border-gray-200 space-y-2"></div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Modals -->
+    <div id="new-project-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-2xl text-gray-800">
+            <h2 class="text-2xl font-bold mb-4">Create New Project</h2>
+            <div class="mb-4">
+                <label for="new-project-name" class="block text-sm font-medium text-gray-600 mb-1 font-body">Project Name</label>
+                <input type="text" id="new-project-name" class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-body" placeholder="e.g., flask-api-hello-world">
+            </div>
+            <div class="mb-6">
+                <label for="new-project-prompt" class="block text-sm font-medium text-gray-600 mb-1 font-body">Main Goal</label>
+                <textarea id="new-project-prompt" class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-body" rows="5" placeholder="Describe the task for the agent..."></textarea>
+            </div>
+            <div class="flex justify-end gap-4">
+                <button id="cancel-new-project" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition btn">Cancel</button>
+                <button id="confirm-new-project" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition btn">Create</button>
+            </div>
+        </div>
+    </div>
+    <div id="file-content-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-4xl h-5/6 flex flex-col">
+            <div class="flex justify-between items-center mb-4"><h2 id="file-modal-title" class="text-xl font-bold text-gray-800 font-mono"></h2><button id="close-file-modal" class="text-gray-400 hover:text-gray-800 text-2xl btn">&times;</button></div>
+            <div class="flex-grow bg-gray-900 text-white rounded-md overflow-auto"><pre><code id="file-modal-content" class="text-sm p-4 block whitespace-pre-wrap font-body"></code></pre></div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const API_BASE = '/api';
+        // --- UPDATED STATE MANAGEMENT ---
+        // 'autonomousState' now manages the auto-run feature with idle, running, and paused states.
+        let state = {
+            projects: [],
+            currentProject: null,
+            agentStatus: {},
+            isCycleRunning: false,
+            autonomousState: 'idle', // 'idle', 'running', 'paused'
+            autonomousTimeoutId: null
+        };
+
+        const D = (id) => document.getElementById(id);
+        const projectList = D('project-list'), newProjectBtn = D('new-project-btn'), newProjectModal = D('new-project-modal'),
+              cancelNewProjectBtn = D('cancel-new-project'), confirmNewProjectBtn = D('confirm-new-project'),
+              welcomeView = D('welcome-view'), projectView = D('project-view'), rightPanel = D('right-panel'),
+              feedbackInput = D('feedback-input'), sendFeedbackBtn = D('send-feedback-btn'),
+              fileContentModal = D('file-content-modal'), closeFileModalBtn = D('close-file-modal'),
+              activityFeed = D('activity-feed'), controlHeader = D('control-header'), fileListing = D('file-listing'),
+              projectActions = D('project-actions'), activeProcessesContainer = D('active-processes-container'),
+              importBtn = D('import-btn'), sourcePathInput = D('source-path'), leftPanel = D('left-panel'),
+              toggleNavBtn = D('toggle-nav-btn');
+
+        const api = {
+            get: (endpoint) => fetch(`${API_BASE}${endpoint}`).then(res => res.ok ? res.json() : Promise.reject(res)),
+            post: (endpoint, body) => fetch(`${API_BASE}${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(res => res.ok ? res.json() : Promise.reject(res)),
+            delete: (endpoint) => fetch(`${API_BASE}${endpoint}`, { method: 'DELETE' }).then(res => res.ok ? res.json() : Promise.reject(res)),
+        };
+
+        const renderProjectList = () => {
+            projectList.innerHTML = state.projects.length === 0 ? '<p class="text-sm text-gray-400 px-2 nav-text">No projects yet.</p>' : '';
+            state.projects.forEach(p => {
+                const el = document.createElement('div');
+                el.className = `p-2 rounded-lg cursor-pointer mb-1 flex items-center nav-item ${state.currentProject === p.name ? 'bg-indigo-500' : 'hover:bg-gray-700'}`;
+                el.innerHTML = `<i class="fas fa-folder mr-3"></i><span class="nav-text">${p.name}</span>`;
+                el.onclick = () => selectProject(p.name);
+                projectList.appendChild(el);
+            });
+        };
+
+        const renderControlHeader = () => {
+            if (!state.currentProject) { controlHeader.innerHTML = ''; return; }
+            controlHeader.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">${state.agentStatus.project_name}</h2>
+                        <p class="text-sm text-gray-500 max-w-2xl truncate font-body">${state.agentStatus.initial_prompt}</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                         <div class="flex items-center gap-2 font-body text-sm">
+                            <label for="max-cycles" class="text-gray-600">Max:</label>
+                            <input id="max-cycles" type="number" value="15" title="Max autonomous cycles" class="bg-gray-100 w-16 text-center rounded-md border border-gray-300 p-1">
+                            <label for="auto-delay" class="text-gray-600">Delay:</label>
+                            <input id="auto-delay" type="number" value="1500" title="Delay (ms)" class="bg-gray-100 w-20 text-center rounded-md border border-gray-300 p-1">
+                        </div>
+                        <button id="play-pause-btn" class="font-bold py-2 px-4 rounded-lg flex items-center justify-center w-36 btn"></button>
+                    </div>
+                </div>`;
+            D('play-pause-btn').onclick = handlePlayPause;
+            updatePlayPauseButton();
+        };
+
+        const renderProjectActions = () => {
+            if (!state.currentProject) { projectActions.innerHTML = ''; return; }
+            projectActions.innerHTML = `
+                <button id="finalize-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg btn"><i class="fas fa-check-circle mr-2"></i>Finalize Task</button>
+                <button id="cleanup-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-800 font-bold py-2 px-4 rounded-lg btn"><i class="fas fa-broom mr-2"></i>Cleanup Task</button>
+                <button id="delete-project-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg btn"><i class="fas fa-trash mr-2"></i>Delete Project</button>
+            `;
+            D('finalize-btn').onclick = handleFinalize;
+            D('cleanup-btn').onclick = handleCleanup;
+            D('delete-project-btn').onclick = handleDeleteProject;
+        };
+
+        // --- UPDATED: Pause/Resume Button Logic ---
+        // This function now correctly reflects the agent's autonomous state.
+        const updatePlayPauseButton = () => {
+            const btn = D('play-pause-btn');
+            if (!btn) return;
+            btn.disabled = state.isCycleRunning;
+            let icon, text, color;
+
+            switch (state.autonomousState) {
+                case 'running':
+                    icon = 'fa-pause';
+                    text = 'Pause';
+                    color = 'bg-yellow-500 hover:bg-yellow-600';
+                    break;
+                case 'paused':
+                    icon = 'fa-play';
+                    text = 'Resume';
+                    color = 'bg-green-500 hover:bg-green-600';
+                    break;
+                default: // idle
+                    icon = 'fa-play';
+                    text = 'Engage';
+                    color = 'bg-indigo-600 hover:bg-indigo-700 text-white';
+            }
+            btn.innerHTML = `<i class="fas ${icon} mr-2"></i>${text}`;
+            btn.className = `font-bold py-2 px-4 rounded-lg flex items-center justify-center w-36 btn ${color}`;
+        };
+
+        const renderActivityFeed = () => {
+            activityFeed.innerHTML = '';
+            if (!state.agentStatus.cycle_history || state.agentStatus.cycle_history.length === 0) {
+                activityFeed.innerHTML = '<div class="text-center text-gray-400 py-8">Agent is ready. Engage to begin.</div>';
+                return;
+            }
+            state.agentStatus.cycle_history.forEach(cycle => {
+                const cycleEl = document.createElement('div');
+                cycleEl.className = 'mb-6';
+
+                const logItems = (cycle.log_entries || []).map(log => `<li class="text-xs text-gray-500"><i class="fas fa-arrow-right mr-2"></i>${log}</li>`).join('');
+                const logsHtml = logItems ? `<div class="p-3 bg-gray-50 rounded-md mt-2"><ul class="space-y-1">${logItems}</ul></div>` : '';
+                const feedbackHtml = cycle.feedback_received ? `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md"><strong><i class="fas fa-comment-dots mr-2 text-yellow-500"></i>Human Feedback:</strong><div class="whitespace-pre-wrap mt-1 text-gray-700">${cycle.feedback_received}</div></div>` : '';
+                const thoughtHtml = `<div class="p-3 bg-blue-50 border border-blue-200 rounded-md mt-2"><strong><i class="fas fa-lightbulb mr-2 text-blue-500"></i>Agent's Plan:</strong><div class="whitespace-pre-wrap mt-1 text-gray-700">${cycle.thought}</div></div>`;
+                let actionsHtml = '';
+                if(cycle.actions_taken && cycle.actions_taken.length > 0) {
+                    const actionItems = cycle.actions_taken.map(action => {
+                        const params = { ...action.action }; delete params.type;
+                        return `<div class="mt-2 text-sm"><p class="font-bold text-purple-600">${action.action.type}</p><pre class="text-xs p-2 bg-gray-800 text-white rounded-md mt-1">${JSON.stringify(params, null, 2)}</pre></div>`;
+                    }).join('');
+                    actionsHtml = `<div class="p-3 bg-purple-50 border border-purple-200 rounded-md mt-2 actions-bubble"><strong><i class="fas fa-cogs mr-2 text-purple-500"></i>Actions Taken:</strong>${actionItems}</div>`;
+                }
+                let executionReportHtml = '';
+                if (cycle.execution_report) {
+                    const isError = /failure/i.test(cycle.execution_report) || /error/i.test(cycle.execution_report);
+                    executionReportHtml = `<div class="p-3 bg-gray-800 rounded-md mt-2 execution-bubble"><strong><i class="fas fa-terminal mr-2 text-gray-400"></i>Execution Report:</strong><pre class="text-xs mt-1 ${isError ? 'text-red-400' : 'text-green-400'}">${cycle.execution_report}</pre></div>`;
+                }
+                cycleEl.innerHTML = `<div class="flex items-center gap-4 mb-2"><span class="text-indigo-600 font-bold">Cycle ${cycle.cycle_count}</span><hr class="flex-grow border-gray-200"></div>${feedbackHtml}${logsHtml}${thoughtHtml}${actionsHtml}${executionReportHtml}`;
+                activityFeed.appendChild(cycleEl);
+            });
+            activityFeed.scrollTop = activityFeed.scrollHeight;
+        };
+
+        const renderFileSystem = () => {
+            if (!state.agentStatus.file_listing) { fileListing.innerHTML = '<p class="text-gray-500">No files yet.</p>'; return; }
+            const fileHtml = state.agentStatus.file_listing.split('\n').map(line => {
+                const trimmedLine = line.trim();
+                const isFile = !line.trim().endsWith('/') && trimmedLine.length > 0;
+                if (isFile) {
+                    const isHtml = trimmedLine.endsWith('.html');
+                    const isPy = trimmedLine.endsWith('.py');
+                    const filePath = trimmedLine.replace(/^[\\/]/, '');
+                    const fullPath = `${state.currentProject}/${filePath}`;
+                    return `<div class="flex items-center justify-between hover:bg-gray-200 rounded p-1 group">
+                                <span class="cursor-pointer truncate" onclick="window.app.viewFile('${filePath}')">${line}</span>
+                                <div class="hidden group-hover:flex items-center gap-2">
+                                    ${isPy ? `<i class="fas fa-play-circle text-green-500 cursor-pointer" title="Execute" onclick="window.app.executeFile('python ${filePath}')"></i>` : ''}
+                                    ${isHtml ? `<a href="/agent_projects/${fullPath}" target="_blank"><i class="fas fa-external-link-alt text-blue-500 cursor-pointer" title="Launch in new tab"></i></a>` : ''}
+                                </div>
+                            </div>`;
+                }
+                return `<div class="text-gray-400">${line}</div>`;
+            }).join('');
+            fileListing.innerHTML = `<div class="whitespace-pre text-gray-700">${fileHtml}</div>`;
+        };
+
+        const renderActiveProcesses = () => {
+            const processes = state.agentStatus.active_processes || {};
+            if (Object.keys(processes).length === 0) {
+                activeProcessesContainer.innerHTML = '';
+                return;
+            }
+            const processItems = Object.entries(processes).map(([pid, info]) => `
+                <div class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
+                    <div class="text-xs truncate">
+                        <span class="font-bold">${pid.substring(0,8)}</span>: ${info.command}
+                    </div>
+                    <button class="text-red-500 hover:text-red-700" onclick="window.app.terminateProcess('${pid}')"><i class="fas fa-stop-circle"></i></button>
+                </div>
+            `).join('');
+            activeProcessesContainer.innerHTML = `
+                <h3 class="text-sm font-bold uppercase text-gray-600 mb-2">Active Processes</h3>
+                <div class="space-y-2">${processItems}</div>
+            `;
+        };
+
+        const loadProjects = async () => { try { state.projects = await api.get('/projects'); renderProjectList(); } catch (err) { console.error("Failed to load projects", err); }};
+
+        const selectProject = async (projectName) => {
+            if (state.isCycleRunning) return;
+            state.currentProject = projectName;
+            state.autonomousState = 'idle';
+            clearTimeout(state.autonomousTimeoutId);
+            welcomeView.classList.add('hidden'); projectView.classList.remove('hidden'); rightPanel.classList.remove('hidden');
+            renderProjectList();
+            await updateAgentStatus();
+        };
+
+        const updateAgentStatus = async () => {
+            if (!state.currentProject) return;
+            try {
+                state.agentStatus = await api.get(`/agent/status?project_name=${state.currentProject}`);
+                renderControlHeader(); renderProjectActions(); renderActivityFeed(); renderFileSystem(); renderActiveProcesses();
+            } catch (err) {
+                console.error("Failed to update agent status", err);
+                state.currentProject = null;
+                welcomeView.classList.remove('hidden'); projectView.classList.add('hidden'); rightPanel.classList.add('hidden');
+                loadProjects();
+            }
+        };
+
+        const runSingleCycle = async (feedback = '') => {
+            if (!state.currentProject || state.isCycleRunning) return;
+            state.isCycleRunning = true; updatePlayPauseButton();
+            if (feedback) {
+                const tempFeedbackEl = document.createElement('div');
+                tempFeedbackEl.className = 'p-3 bg-yellow-50 border border-yellow-200 rounded-md mb-4';
+                tempFeedbackEl.innerHTML = `<strong><i class="fas fa-comment-dots mr-2 text-yellow-500"></i>Human Feedback:</strong><div class="whitespace-pre-wrap mt-1 text-gray-700">${feedback}</div>`;
+                activityFeed.appendChild(tempFeedbackEl);
+                activityFeed.scrollTop = activityFeed.scrollHeight;
+            }
+            try {
+                await api.post('/agent/run-cycle', { project_name: state.currentProject, feedback });
+                await updateAgentStatus();
+                // If task is done or needs input, pause the autonomous mode
+                if (state.agentStatus.task_completed || state.agentStatus.waiting_for_input) {
+                    state.autonomousState = 'idle';
+                }
+            } catch (err) {
+                console.error("Failed to run cycle", err);
+                state.autonomousState = 'paused';
+            } finally {
+                state.isCycleRunning = false;
+                updatePlayPauseButton();
+            }
+        };
+
+        const autonomousLoop = async () => {
+            if (state.autonomousState !== 'running' || state.isCycleRunning) return;
+            const maxCycles = parseInt(D('max-cycles').value, 10);
+            if (state.agentStatus.cycle_count >= maxCycles) {
+                state.autonomousState = 'paused';
+                updatePlayPauseButton();
+                return;
+            }
+            await runSingleCycle();
+            if (state.autonomousState === 'running') {
+                const delay = parseInt(D('auto-delay').value, 10);
+                state.autonomousTimeoutId = setTimeout(autonomousLoop, delay);
+            }
+        };
+
+        // --- UPDATED: Pause/Resume Handler ---
+        const handlePlayPause = () => {
+            switch (state.autonomousState) {
+                case 'idle':
+                case 'paused':
+                    state.autonomousState = 'running';
+                    autonomousLoop();
+                    break;
+                case 'running':
+                    state.autonomousState = 'paused';
+                    clearTimeout(state.autonomousTimeoutId);
+                    break;
+            }
+            updatePlayPauseButton();
+        };
+
+        const handleSendFeedback = () => { const feedback = feedbackInput.value.trim(); if (feedback) { runSingleCycle(feedback); feedbackInput.value = ''; }};
+        const handleCreateProject = async () => {
+            const name = D('new-project-name').value.trim(), prompt = D('new-project-prompt').value.trim();
+            if (!name || !prompt) { alert("Project name and prompt are required."); return; }
+            try { await api.post('/projects', { project_name: name, prompt }); closeNewProjectModal(); await loadProjects(); await selectProject(name); }
+            catch (err) { console.error("Failed to create project", err); }
+        };
+        const handleDeleteProject = async () => {
+            if (!state.currentProject || !confirm(`Delete "${state.currentProject}"? This will remove all files.`)) return;
+            try {
+                await api.delete(`/projects/${state.currentProject}`);
+                state.currentProject = null; state.agentStatus = {};
+                welcomeView.classList.remove('hidden'); projectView.classList.add('hidden'); rightPanel.classList.add('hidden');
+                await loadProjects();
+            } catch(err) { console.error("Failed to delete project", err); }
+        };
+        const handleCleanup = async () => {
+            if (!state.currentProject || !confirm(`Cleanup "${state.currentProject}"? This will reset the agent's progress but keep the files.`)) return;
+            try { await api.post('/agent/reset', { project_name: state.currentProject }); await updateAgentStatus(); }
+            catch(e) { console.error("Cleanup failed", e); }
+        };
+        const handleFinalize = async () => {
+            if (!state.currentProject || !confirm(`Finalize task for "${state.currentProject}"?`)) return;
+            try {
+                await api.post('/agent/finalize', { project_name: state.currentProject });
+                state.autonomousState = 'idle';
+                await updateAgentStatus();
+                alert('Task has been marked as complete!');
+            }
+            catch(e) { console.error("Finalize failed", e); }
+        };
+        const handleTerminate = async (pid) => {
+            try { await api.post('/agent/terminate', { project_name: state.currentProject, pid }); await updateAgentStatus(); }
+            catch(e) { console.error("Terminate failed", e); }
+        };
+        const executeFile = async (command) => {
+            try { await api.post('/agent/execute', { project_name: state.currentProject, command }); await updateAgentStatus(); }
+            catch(e) { console.error("Execute failed", e); }
+        };
+        const handleImport = async () => {
+            const sourcePath = sourcePathInput.value.trim();
+            if (!sourcePath) { alert('Please provide a source path.'); return; }
+            try {
+                await api.post('/api/agent/import-source', { project_name: state.currentProject, source_path: sourcePath });
+                sourcePathInput.value = '';
+                await updateAgentStatus();
+            } catch(e) { console.error("Import failed", e); alert('Failed to import source.'); }
+        };
+
+        const openNewProjectModal = () => { D('new-project-name').value = ''; D('new-project-prompt').value = ''; newProjectModal.classList.remove('hidden'); };
+        const closeNewProjectModal = () => newProjectModal.classList.add('hidden');
+        const viewFile = async (path) => {
+            try { const data = await api.get(`/agent/file-content?project_name=${state.currentProject}&path=${path}`); D('file-modal-title').textContent = data.path; D('file-modal-content').textContent = data.content; fileContentModal.classList.remove('hidden'); }
+            catch (err) { console.error(`Failed to get content for ${path}`, err); }
+        };
+        const closeFileModal = () => fileContentModal.classList.add('hidden');
+
+        newProjectBtn.onclick = openNewProjectModal;
+        cancelNewProjectBtn.onclick = closeNewProjectModal;
+        confirmNewProjectBtn.onclick = handleCreateProject;
+        sendFeedbackBtn.onclick = handleSendFeedback;
+        feedbackInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendFeedback(); } });
+        closeFileModalBtn.onclick = closeFileModal;
+        importBtn.onclick = handleImport;
+        toggleNavBtn.onclick = () => leftPanel.classList.toggle('left-panel-collapsed');
+
+        window.app = { viewFile, executeFile, terminateProcess: handleTerminate };
+        loadProjects();
+    });
+    </script>
+</body>
+</html>

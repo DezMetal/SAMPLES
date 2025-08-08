@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContextManager Module README</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Tailwind's slate-50 */
+            color: #334155; /* Tailwind's slate-700 */
+        }
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
+        }
+        h1, h2, h3 {
+            color: #1e293b; /* Tailwind's slate-800 */
+            font-weight: 700; /* font-bold */
+            margin-bottom: 1rem;
+        }
+        h1 { font-size: 2.25rem; } /* text-4xl */
+        h2 { font-size: 1.875rem; } /* text-3xl */
+        h3 { font-size: 1.5rem; }  /* text-2xl */
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+        ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        ol {
+            list-style-type: decimal;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+        code {
+            background-color: #e2e8f0; /* Tailwind's slate-200 */
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem; /* rounded-md */
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            font-size: 0.875rem; /* text-sm */
+            color: #1a202c; /* Tailwind's gray-900 */
+        }
+        pre {
+            background-color: #1e293b; /* Tailwind's slate-800 */
+            color: #f8fafc; /* Tailwind's slate-50 */
+            padding: 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .section-heading {
+            border-bottom: 1px solid #e2e8f0; /* Tailwind's slate-200 */
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="container">
+        <h1 class="text-4xl font-bold mb-6 text-center">ContextManager</h1>
+
+        <p class="text-lg text-center mb-8">
+            <code>ContextManager</code> is a Python module designed to help you manage conversation history for Large Language Models (LLMs) like Google Gemini. It keeps your LLM interactions focused, saves on token usage, and provides a way to store long-term memory for each conversation.
+        </p>
+
+        <h2 class="text-3xl font-bold mb-4 section-heading">Key Features</h2>
+        <ul class="list-disc ml-6 mb-6">
+            <li>
+                <h3 class="text-2xl font-semibold mb-2">Flexible Context Handling:</h3>
+                <ul class="list-disc ml-6">
+                    <li>
+                        <strong>Basic Mode (<code class="font-mono">basic</code>):</strong> Keeps your active conversation short by removing older messages once a set limit is reached. Great for simple, short-term interactions.
+                    </li>
+                    <li>
+                        <strong>AI Mode (<code class="font-mono">ai</code>):</strong> Uses a Gemini LLM to summarize older parts of the conversation. This keeps the main context small while preserving key details in a summary, saving tokens and maintaining a deeper understanding over time.
+                    </li>
+                </ul>
+            </li>
+            <li class="mt-4">
+                <h3 class="text-2xl font-semibold mb-2">Thread-Specific Conversations:</h3>
+                <p>
+                    Manages separate conversation histories for different users or topics. Each "thread" (identified by by a unique ID) has its own independent context and archive.
+                </p>
+            </li>
+            <li class="mt-4">
+                <h3 class="text-2xl font-semibold mb-2">Easy Configuration:</h3>
+                <p>
+                    Set up how context is managed using a simple Python dictionary or by loading a JSON file. This makes it easy to adapt the module to different needs without changing code.
+                </p>
+            </li>
+            <li class="mt-4">
+                <h3 class="text-2xl font-semibold mb-2">Persistent Memory:</h3>
+                <p>
+                    You can save the entire state of all conversations (active parts and archived summaries) and load them back later. This means your application remembers past interactions even after restarting.
+                </p>
+            </li>
+            <li class="mt-4">
+                <h3 class="text-2xl font-semibold mb-2">Multi-modal Ready:</h3>
+                <p>
+                    Designed to handle messages that include both text and other data types (like images), as used by Gemini. While summarization currently focuses on text, the structure supports richer content.
+                </p>
+            </li>
+        </ul>
+
+        <h2 class="text-3xl font-bold mb-4 section-heading">Installation</h2>
+        <ol class="list-decimal ml-6 mb-6">
+            <li>
+                <strong>Get the Module:</strong> Create a directory named <code class="font-mono">context_manager</code>. Inside this directory, place the <code class="font-mono">__init__.py</code> file (which contains or imports the <code class="font-mono">ContextManager</code> class). Then, place this <code class="font-mono">context_manager</code> directory within your project (e.g., in a <code class="font-mono">utils</code> directory).
+            </li>
+            <li class="mt-4">
+                <strong>Install Libraries:</strong>
+                <pre><code class="language-bash">pip install google-generativeai python-dotenv</code></pre>
+            </li>
+            <li class="mt-4">
+                <strong>Set Up Gemini API Key:</strong><br>
+                Create a file named <code class="font-mono">.env</code> in your project's main folder and add your Gemini API key:
+                <pre><code class="language-bash">GEMINI_API_KEY="YOUR_GEMINI_API_KEY"</code></pre>
+                (You can also pass the API key directly in your configuration if you prefer.)
+            </li>
+        </ol>
+
+        <h2 class="text-3xl font-bold mb-4 section-heading">How to Use</h2>
+
+        <h3 class="text-2xl font-semibold mb-3">1. Initialize ContextManager</h3>
+        <p>Choose how you want to configure the <code>ContextManager</code>:</p>
+
+        <h4 class="text-xl font-semibold mb-2">Using a Python Dictionary:</h4>
+        <pre><code class="language-python">from context_manager import ContextManager
+
+# Example for Basic Mode
+basic_config = {
+    "mode": "basic",
+    "max_active_msgs": 5 # Keep up to 5 messages in the active conversation
+}
+cm_basic = ContextManager(basic_config)
+
+# Example for AI Mode
+ai_config = {
+    "mode": "ai",
+    "max_active_msgs": 10,       # Max 10 messages in active conversation
+    "msg_count_sum_thresh": 6,  # Summarize when active messages exceed 6
+    "keep_n": 2,                # Keep the last 2 messages exactly as they are after summarizing
+    "llm_mod": "gemini-1.5-flash", # The Gemini model used for summarization
+    "llm_sum_max_tok": 80       # Maximum token length for the generated summary
+    # "llm_key": "YOUR_GEMINI_API_KEY" # Optional: if you don't use a .env file
+}
+cm_ai = ContextManager(ai_config)</code></pre>
+
+        <h4 class="text-xl font-semibold mb-2">Loading from a JSON Configuration File:</h4>
+        <p>First, create a file (e.g., <code class="font-mono">config.json</code>):</p>
+        <pre><code class="language-json">{
+    "mode": "ai",
+    "max_active_msgs": 10,
+    "msg_count_sum_thresh": 6,
+    "keep_n": 2,
+    "llm_mod": "gemini-1.5-flash",
+    "llm_sum_max_tok": 80
+}</code></pre>
+        <p>Then, load it in your Python code:</p>
+        <pre><code class="language-python">from context_manager import ContextManager
+from dotenv import load_dotenv # Don't forget this if using .env
+
+load_dotenv() # Load your API key from .env
+
+cm_from_json = ContextManager.from_json_config("config.json")</code></pre>
+
+        <h3 class="text-2xl font-semibold mb-3">2. Set Up a New Conversation Thread</h3>
+        <p>If you have an existing conversation that you want to start managing, use <code class="font-mono">set_initial_msgs</code> for its unique <code class="font-mono">thread_id</code>.</p>
+        <pre><code class="language-python"># Assuming 'cm_ai' is your initialized ContextManager
+thread_id = "user_session_abc"
+initial_history = [
+    {"role": "user", "parts": [{"text": "Hi there, I'm a new user."}]},
+    {"role": "model", "parts": [{"text": "Welcome! How can I assist you?"}]},
+    {"role": "user", "parts": [{"text": "I need help with my account."}]}
+]
+cm_ai.set_initial_msgs(thread_id, initial_history)</code></pre>
+
+        <h3 class="text-2xl font-semibold mb-3">3. Add New Messages</h3>
+        <p>Use <code class="font-mono">add_msg</code> for every new message in a conversation. The manager will automatically handle context limits.</p>
+        <pre><code class="language-python"># Continuing the conversation
+cm_ai.add_msg(thread_id, "model", "Please provide your account number.")
+cm_ai.add_msg(thread_id, "user", "My account number is 12345. I also have a question about billing.")
+# As you add more messages, summarization or truncation will occur as configured.</code></pre>
+
+        <h3 class="text-2xl font-semibold mb-3">4. Get Context for Your LLM</h3>
+        <p>Call <code class="font-mono">get_ctx</code> to retrieve the optimized list of messages ready to be sent to your LLM.</p>
+        <pre><code class="language-python">current_context_for_gemini = cm_ai.get_ctx(thread_id)
+
+# Example: Sending to Gemini API
+# from google import genai, types
+# client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+# response = client.models.generate_content(
+#     model=f"models/{ai_config['llm_mod']}", # Use your configured model
+#     contents=current_context_for_gemini
+# )
+# print(response.text)</code></pre>
+
+        <h3 class="text-2xl font-semibold mb-3">5. Access Archived History</h3>
+        <p>Use <code class="font-mono">get_arch</code> to retrieve the long-term memory (summaries or truncated messages) for a thread.</p>
+        <pre><code class="language-python">thread_archive = cm_ai.get_arch(thread_id)
+print(f"Active messages count: {thread_archive['current']}")
+print("Archived History:")
+for item in thread_archive['arch']:
+    if item['type'] == 'sum':
+        print(f"  Summary ({item['ts']}): {item['cont']}")
+    elif item['type'] == 'trunc':
+        print(f"  Truncated Msg ({item['ts']}): {item['cont']['role']}: {item['cont']['parts'][0]['text']}")</code></pre>
+
+        <h3 class="text-2xl font-semibold mb-3">6. Save and Load All Threads' State</h3>
+        <p>To make your conversations persistent across application restarts, save and load the entire state.</p>
+        <pre><code class="language-python"># Save all current conversation states
+all_threads_state = cm_ai.save()
+
+# You can save this 'all_threads_state' to a file or database
+with open("all_conversations_state.json", "w") as f:
+    json.dump(all_threads_state, f, indent=4)
+
+# To load states into a new ContextManager instance
+new_cm_instance = ContextManager(ai_config) # Initialize with the same config
+with open("all_conversations_state.json", "r") as f:
+    loaded_state = json.load(f)
+new_cm_instance.load(loaded_state)
+print("All conversation states loaded successfully!")</code></pre>
+    </div>
+</body>
+</html>
