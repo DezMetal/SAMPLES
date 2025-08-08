@@ -1,0 +1,15 @@
+{% extends 'base_layout.html' %}
+{% block content %}
+{% set page = page %}
+{% if page is none %}
+    {% set content = page_data['content'] %}
+{% else %}
+    {% set content = page.content %}
+{% endif %}
+{% for m in page_data['msg'] %}
+    <p>{{m}}<br></p>
+{% endfor %}
+<div class="pure-u-1 content">
+    {{content|safe}}
+</div>
+{% endblock %}

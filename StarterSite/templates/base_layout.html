@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'main_metas.html' %}
+</head>
+<body class="pure-u-1 pure-g">
+<div id="loading" class="no-scroll center loading-unblur"></div>
+    {% include 'nav.html' %}
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="pure-u">
+                {% for m in messages %}
+                    <p class="">{{ m }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    {% block content %}
+    {% endblock %}
+    <div id="notifications" class="right pure-u-1-3"></div>
+</body>
+{% include 'footer.html' %}
+</html>

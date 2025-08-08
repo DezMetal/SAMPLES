@@ -1,0 +1,73 @@
+<style>
+    nav {
+        display: flex;
+        justify-content: space-between;
+        background-color: #333;
+        color: #fff;
+        padding: 1em;
+    }
+
+    nav ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+    }
+
+    nav ul li {
+        position: relative;
+        margin-right: 20px;
+    }
+
+    nav ul li a {
+        text-decoration: none;
+        color: #fff;
+        padding: 10px;
+        display: block;
+    }
+
+    nav ul ul {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background-color: #333;
+        border-radius: 0 0 5px 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    nav ul li:hover > ul {
+        display: flex;
+        flex-direction: column;
+    }
+</style>
+
+<nav class="pure-u-1">
+    <ul>
+        <li><a href="{{ url_for('views.index') }}">Home</a></li>
+        <li>
+            {% if current_user.is_authenticated %}
+            <a href="#">{{ current_user.uname }}</a>
+            <ul>
+                <li><a href="#">Profile</a></li>
+                <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+            </ul>
+            {% else %}
+            <a href="#">Users</a>
+            <ul>
+                <li><a href="{{ url_for('views.login') }}">Login</a></li>
+                <li><a href="{{ url_for('views.register') }}">Register</a></li>
+            </ul>
+            {% endif %}
+        </li>
+        <li>
+            <a href="#">Features</a>
+            <ul>
+                <li><a href="#">Feature 1</a></li>
+                <li><a href="#">Feature 2</a></li>
+            </ul>
+        </li>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Contact</a></li>
+    </ul>
+</nav>

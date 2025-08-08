@@ -1,0 +1,18 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+
+    html {
+        color: lightgray;
+        background-color: rgba(0, 0, 0, 1)
+    }
+
+    {% if not page_data['style'] == 'default' %}
+    {% for elem, vals in page_data['style'].items() %}
+    {{elem | safe}} {
+        {% for attr, val in vals.items() %}
+        {{attr}}: {{val}};
+        {% endfor %}
+        }
+    {% endfor %}
+    {% endif %}
+</style>
