@@ -32,10 +32,10 @@ Here are some of the key projects in this collection:
 *   **Key Skills:** Software Architecture, Database Design, DevOps & Containerization
 *   **[Go to Project &raquo;](./StarterSite/README.md)**
 
-### 🗣️ LiveTranslate - Real-Time Voice Translator
-*   **What it is:** A background application that provides real-time, speech-to-speech translation between English and Japanese. It automatically detects the spoken language and vocalizes the translation.
-*   **Tech Stack:** Python, `speech_recognition`, `googletrans`, `gTTS`
-*   **Key Skills:** API Integration, Digital Signal Processing (Audio), Concurrency
+### 🗣️ LiveTranslate - Offline Voice Control & Translation
+*   **What it is:** A Windows application that uses local, offline models to provide real-time speech-to-text, translation (EN->JA), and a voice-controlled command system.
+*   **Tech Stack:** Python, `vosk`, `argostranslate`, `pyttsx3`, `tkinter`
+*   **Key Skills:** Offline AI/ML Model Integration, Voice-Controlled Application Development, GUI Development
 *   **[Go to Project &raquo;](./LiveTranslate/README.md)**
 
 ### ⚛️ PureNums - Quantum Number Generator
