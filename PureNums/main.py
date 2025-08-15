@@ -138,7 +138,7 @@ def main():
         description="Generates purified random number sets from quantum entropy.",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument('--api-key', default="oh45ihpbug54sk1852zQna87KmutGZ6yaaexrQ85", help="Your secret API key from quantumnumbers.anu.edu.au.\n(Required for security and to prevent unauthorized use.)")
+    parser.add_argument('--api-key', default="YOUR_SECRET_API_KEY_HERE", help="Your secret API key from quantumnumbers.anu.edu.au.\n(Required for security and to prevent unauthorized use.)")
     parser.add_argument('--sets', type=int, default=1, help="The number of unique sets to generate. Default: 1")
     parser.add_argument('--size', type=int, default=7, help="The size of each unique number set. Default: 7")
     parser.add_argument('--max', type=int, default=59, help="The maximum value for any single number. Default: 59")
