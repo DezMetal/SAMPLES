@@ -1,60 +1,62 @@
-# LiveTranslate - Real-Time Voice Translator
+# LiveTranslate - Offline Voice Control & Translation
 
-LiveTranslate is a Python application that provides real-time, bidirectional voice translation between English and Japanese. It runs in the background, listening for speech and automatically translating it to the desired target language, which is then spoken aloud.
+LiveTranslate is a Python application that demonstrates an offline-first, voice-controlled interface for real-time transcription and translation. It listens for spoken English commands, transcribes them locally, and can perform actions or translate the speech into Japanese. The application is designed to run on Windows and leverages local models for all its core functions, ensuring it can operate without an internet connection.
 
 ## Features
 
--   **Speech-to-Speech Translation**: The application captures audio from a microphone, sends it to a speech-recognition service, translates the resulting text, and then uses a text-to-speech engine to voice the translation.
--   **Bidirectional**: It can translate from English to Japanese and from Japanese to English.
--   **Automatic Language Detection**: The tool automatically detects the language of the input speech.
--   **Voice-Controlled**: The application can be controlled through voice commands, such as "change language mode" to switch the translation direction or "disable voice" to mute the text-to-speech output.
--   **Background Operation**: It runs continuously in the background, allowing you to use it while you work in other applications.
+-   **Offline Speech Recognition**: Uses the Vosk engine with a local English model to transcribe audio in real time.
+-   **Offline Translation**: Translates English text to Japanese using the Argos Translate library, which runs entirely offline.
+-   **Offline Text-to-Speech**: Vocalizes the translated Japanese text using the built-in Windows TTS engine (`pyttsx3`).
+-   **Voice-Controlled Framework**: A modular system allows you to map spoken commands to specific Python functions, making it extensible for new voice-based actions.
+-   **Simple GUI**: A transparent Tkinter window displays the original English transcription and the Japanese translation.
 
 ## Core Libraries
 
--   **`speech_recognition`**: For capturing microphone input and recognizing speech using the Google Web Speech API.
--   **`googletrans`**: For translating the recognized text.
--   **`gTTS` (Google Text-to-Speech)**: For converting the translated text back into speech.
--   **`playsound`**: For playing the generated audio files.
--   **`keyboard`**: For monitoring hotkeys (though the primary control is via voice).
+-   **`vosk`**: For offline, real-time speech recognition.
+-   **`argostranslate`**: For offline text translation.
+-   **`pyttsx3`**: For using native text-to-speech engines.
+-   **`pyaudio`**: For capturing microphone input.
+-   **`tkinter`**: For the simple graphical user interface.
+-   **`schedule`**: For time-based event scheduling.
 
 ---
 ## Portfolio Highlight
 
 ### Use Cases
-*   **Live Conversations:** Enable real-time, two-way conversations between speakers of different languages (specifically English and Japanese).
-*   **Travel & Tourism:** Help travelers communicate with locals for directions, ordering food, or asking questions.
-*   **International Business:** Facilitate clearer communication in meetings or calls with international partners.
-*   **Language Learning:** Allow learners to practice their pronunciation and get instant feedback on how their speech is understood and translated.
+*   **Offline Voice Assistant:** Build a custom voice assistant that can operate in environments without internet access.
+*   **Accessibility Tools:** Create tools for users who rely on voice commands to interact with their computer.
+*   **Custom Automation:** Automate repetitive tasks by triggering scripts with spoken phrases.
+*   **Language Tools:** Assist with language learning or basic translation without needing to connect to the cloud.
 
 ### Proof of Concept
-This project is a proof of concept for a **real-time, bidirectional, speech-to-speech translation pipeline in Python**. It demonstrates:
-*   **End-to-End Audio Pipeline:** A complete, seamless flow from capturing raw microphone audio to speaking the translated output.
-*   **Concurrent Processing:** Effective use of Python's `threading` to manage multiple tasks simultaneously (listening, processing, speaking), which is essential for creating a responsive, real-time user experience.
-*   **Robust API Consumption:** Implements strategies like rotating user-agents and using proxies to ensure reliable and continuous access to the Google Translate API, preventing service blocks.
-*   **Voice-Controlled Interface:** The application itself is controlled by voice commands, allowing for hands-free operation to switch languages or mute the output.
+This project serves as a proof of concept for building a **modular, offline-first, voice-controlled application in Python**. It demonstrates:
+*   **Local AI/ML Pipeline:** An end-to-end pipeline that uses locally-run models for speech recognition, translation, and speech synthesis, ensuring privacy and offline functionality.
+*   **Extensible Command System:** A flexible architecture (`main.py`) that allows developers to easily register new voice commands and associate them with Python functions using regular expressions.
+*   **System-Level Integration:** Integration with native OS features like the Windows TTS engine for low-latency audio output.
+*   **Real-Time GUI Display:** Use of `tkinter` to provide immediate visual feedback for the transcribed and translated text.
 
 ### Hireable Skills
-*   **Python Development:** Building multi-threaded applications and managing state in a concurrent environment.
-*   **API Integration:** Proficient in using and orchestrating multiple third-party APIs and libraries (`speech_recognition`, `googletrans`, `gTTS`) to build a cohesive application.
-*   **Digital Signal Processing (Audio):** Practical experience capturing, processing, and generating audio data in Python.
-*   **Problem Solving:** Devised and implemented practical solutions (e.g., user-agent rotation) to overcome the limitations and usage constraints of free APIs.
-*   **Software Architecture:** Designed a non-blocking, event-driven architecture suitable for real-time applications.
+*   **Python Development:** Building applications with a modular and extensible architecture.
+*   **Offline AI/ML Integration:** Experience in integrating and orchestrating multiple local libraries and models (`Vosk`, `ArgosTranslate`) to create a cohesive, offline-first application.
+*   **GUI Development:** Proficient in using `tkinter` to create functional graphical interfaces in Python.
+*   **Voice-Controlled Applications:** Designing and building systems that use voice as a primary input for control and interaction.
+*   **Problem Solving:** Architecting a system that overcomes the need for cloud-based services, focusing on local processing and system-level integration.
 
 ---
 
 ## Visuals
 
-*Coming Soon: A video demonstrating the real-time translation of a spoken conversation.*
+*Coming Soon: A video demonstrating the real-time transcription and voice-activated commands.*
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine.
+These instructions will get you a copy of the project up and running on your local machine. This project is configured for **Windows**.
 
 ### Prerequisites
 
 *   Python 3.8+
 *   A working microphone
+*   The project requires the `model-small-en-us` model for Vosk, which is included in this repository.
 
 ### Installation
 
@@ -76,6 +78,9 @@ These instructions will get you a copy of the project up and running on your loc
     python main.py
     ```
 
-4.  The application will calibrate for ambient noise and then start listening. Speak into your microphone to begin translation.
+4.  The application will start listening immediately. The GUI window will appear, displaying the transcribed and translated text as you speak.
 
 5.  Press `Esc` to quit the application (you may need to have the terminal window focused).
+
+### Notes on Voices
+The application uses the `pyttsx3` library, which relies on text-to-speech engines installed on your operating system. The default configuration in `functions.py` is set to use the Japanese voice (`TTS_MS_JA-JP_HARUKA_11.0`) on Windows. If you don't have this voice installed, you may need to change the `VID` variable in `functions.py` to a different voice available on your system.
