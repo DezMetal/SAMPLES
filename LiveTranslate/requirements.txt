@@ -1,7 +1,11 @@
-speech_recognition
-googletrans==4.0.0-rc1
-gTTS
-playsound
+numpy==1.26.4
+pyaudio
+vosk
 keyboard
-random_user_agent
+schedule
+google-generativeai
+python-dotenv
 pyttsx3
+argostranslate
+simpleaudio
+pyautogui
