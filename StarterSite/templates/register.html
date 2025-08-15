@@ -1,0 +1,46 @@
+{% extends 'base_layout.html' %}
+{% block content %}
+<form action="/register" class="center block pure-u-1 pure-form" method="post">
+    <fieldset class="pure-control-group">
+        <div>
+            <label for="email">E-Mail:</label>
+            <input id="email" name="email" type="email" required/>
+            <p>Used for important communications.</p>
+        </div>
+        <div>
+            <br>
+            <label for="fname">First Name:</label>
+            <input id="fname" name="fname" type="text" required/>
+            <br>
+            <label for="lname">Last Name:</label>
+            <input id="lname" name="lname" type="text" required/>
+            <p>Used to address you, the account owner.</p>
+        </div>
+        <div>
+            <label for="uname">Username:</label>
+            <input id="uname" name="uname" type="text" required/>
+            <p>Your public alias.</p>
+        </div>
+        <div>
+            <br>
+            <label for="pass0">Password:</label>
+            <input id="pass0" name="pass0" type="password" required/>
+            <label for="pass1">Confirm Password:</label>
+            <input id="pass1" name="pass1" type="password" required/>
+            <p>Used to secure your account. (>8 characters)</p>
+        </div>
+        <hr>
+        <div class="center">
+            <span>
+                <p class="block left">By creating an account you affirm that you have reviewed and agree to
+                    abide by the <a href="#">User Agreement</a></p>
+                <input class="pure-u" id='agreement' type="checkbox" required/>
+            </span>
+            <div class="pure-controls">
+                <button type="submit" class="pure-button pure-button-primary">Register Account</button>
+            </div>
+        </div>
+
+    </fieldset>
+</form>
+{% endblock %}

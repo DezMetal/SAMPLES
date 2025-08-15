@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://cpwn042bxx04k"]
+
+[ext_resource type="Script" uid="uid://w41q18tj7reh" path="res://web_component.gd" id="1_0rqil"]
+[ext_resource type="Script" uid="uid://m64x4xvxbetv" path="res://logging_component.gd" id="2_vfk4o"]
+
+[node name="WebComponent" type="HTTPRequest"]
+script = ExtResource("1_0rqil")
+
+[node name="LoggingComponent" type="Node" parent="."]
+script = ExtResource("2_vfk4o")
+metadata/_custom_type_script = "uid://m64x4xvxbetv"

@@ -1,0 +1,160 @@
+[gd_scene load_steps=21 format=3 uid="uid://cjewx0in8owli"]
+
+[ext_resource type="Script" uid="uid://dbylr0fjnncki" path="res://player_controller.gd" id="1_halkx"]
+[ext_resource type="Texture2D" uid="uid://cbjicbdhc1d7r" path="res://img/deswalk.png" id="2_f0yg5"]
+[ext_resource type="Script" uid="uid://cvmg64ygx1adv" path="res://input_component.gd" id="2_halkx"]
+[ext_resource type="Script" uid="uid://cx4pmu1gyp3me" path="res://physics_component.gd" id="3_4garc"]
+[ext_resource type="Script" uid="uid://dgoj085n30f2u" path="res://animation_component.gd" id="4_lyd3o"]
+[ext_resource type="Script" uid="uid://b5fg0byuf4qhs" path="res://movement_component.gd" id="6_4garc"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_va7e3"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(48, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6nbh1"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(96, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_halkx"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(0, 0, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4garc"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(48, 144, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_lyd3o"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(0, 144, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oamho"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(96, 144, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3eoxc"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(48, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mpocd"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(0, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vw112"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(96, 48, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_um6fn"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(48, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2x3ds"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(96, 96, 48, 48)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8frjr"]
+atlas = ExtResource("2_f0yg5")
+region = Rect2(0, 96, 48, 48)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_halkx"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_va7e3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6nbh1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_halkx")
+}],
+"loop": true,
+"name": &"walkB",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4garc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_lyd3o")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oamho")
+}],
+"loop": true,
+"name": &"walkF",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3eoxc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mpocd")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vw112")
+}],
+"loop": true,
+"name": &"walkL",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_um6fn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2x3ds")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_8frjr")
+}],
+"loop": true,
+"name": &"walkR",
+"speed": 5.0
+}]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_4garc"]
+radius = 8.0
+height = 36.0
+
+[node name="PlayerController" type="CharacterBody2D"]
+scale = Vector2(6, 6)
+disable_mode = 2
+collision_mask = 2
+script = ExtResource("1_halkx")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(0.505, 0.505)
+position_smoothing_enabled = true
+
+[node name="BodySprite2D" type="AnimatedSprite2D" parent="."]
+z_index = 1
+sprite_frames = SubResource("SpriteFrames_halkx")
+animation = &"walkR"
+
+[node name="BodyShape2D" type="CollisionShape2D" parent="."]
+z_index = 1
+position = Vector2(0, 4)
+shape = SubResource("CapsuleShape2D_4garc")
+
+[node name="BaseCast2D" type="RayCast2D" parent="."]
+z_index = 1
+scale = Vector2(11.025, 0.96)
+target_position = Vector2(0, 25)
+collision_mask = 4
+hit_from_inside = true
+collide_with_areas = true
+
+[node name="PhysicsComponent" type="Node" parent="."]
+script = ExtResource("3_4garc")
+
+[node name="InputComponent" type="Node" parent="."]
+script = ExtResource("2_halkx")
+
+[node name="AnimationComponent" type="AnimationPlayer" parent="."]
+script = ExtResource("4_lyd3o")
+
+[node name="MovementComponent" type="Node" parent="."]
+script = ExtResource("6_4garc")
+metadata/_custom_type_script = "uid://b5fg0byuf4qhs"

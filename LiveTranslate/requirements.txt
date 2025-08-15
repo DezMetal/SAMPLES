@@ -1,0 +1,7 @@
+speech_recognition
+googletrans==4.0.0-rc1
+gTTS
+playsound
+keyboard
+random_user_agent
+pyttsx3

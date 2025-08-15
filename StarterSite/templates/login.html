@@ -1,0 +1,19 @@
+{% extends 'base_layout.html' %}
+{% block content %}
+<form action="{{url_for('views.login')}}" method="post" class="center block pure-u pure-form pure-form-aligned">
+    <fieldset>
+        <div class="pure-control-group">
+            <label for="uname">Username</label>
+            <input name="uname" type="text" id="uname" placeholder="Username"/>
+            <span class="pure-form-message-inline">This is a required field.</span>
+        </div>
+        <div class="pure-control-group">
+            <label for="passwd">Password</label>
+            <input name="passwd" type="password" id="passwd" placeholder="Password" />
+        </div>
+        <div class="pure-controls">
+            <button type="submit" class="pure-button pure-button-primary">Submit</button>
+        </div>
+    </fieldset>
+</form>
+{% endblock %}

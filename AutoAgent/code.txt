@@ -1,0 +1,894 @@
+import os
+import json
+import subprocess
+import time
+import sys
+import shutil
+import venv
+import logging
+import shlex
+import re
+import uuid
+from typing import Dict, Any, List, Tuple, Optional
+
+# --- Third-party libraries ---
+try:
+    from dotenv import load_dotenv
+    from flask import Flask, request, jsonify, render_template, send_from_directory
+    import google.generativeai as genai
+except ImportError as e:
+    print(f"FATAL ERROR: A required library is not installed. Please run 'pip install google-generativeai python-dotenv Flask'. Details: {e}")
+    sys.exit(1)
+
+# --- Basic Configuration ---
+load_dotenv()
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - [%(funcName)s] %(message)s')
+
+# --- Constants & Configuration ---
+BASE_PROJECTS_DIR = os.path.abspath("agent_projects")
+SHARED_VENV_PATH = os.path.join(BASE_PROJECTS_DIR, "shared_agent_venv")
+SHARED_TOOLS_PATH = os.path.join(BASE_PROJECTS_DIR, "tools")
+
+SYSTEM_INSTRUCTION = """
+You are an expert, autonomous software engineer agent. Your purpose is to solve complex software development tasks by writing and executing code. You are operating inside a web-based UI where a human user can observe your progress and provide feedback.
+
+**Your Operational Environment & Self-Awareness:**
+You MUST understand the following about your environment to succeed:
+```json
+{
+  "environment": "web-based UI with a sandboxed execution engine",
+  "project_file_structure": "All project files are located in `/agent_projects/<project_name>/`",
+  "web_project_access": {
+    "description": "To view or test a web project (HTML/JS), you must use a Selenium script to access it via a URL. The server is running on [http://127.0.0.1:5001](http://127.0.0.1:5001).",
+    "url_format": "[http://127.0.0.1:5001/projects/](http://127.0.0.1:5001/projects/)<project_name>/<path_to_html_file>",
+    "example_selenium_test": "To test 'JS_Game/index.html', your Selenium script must navigate to '[http://127.0.0.1:5001/projects/JS_Game/index.html](http://127.0.0.1:5001/projects/JS_Game/index.html)'"
+  },
+  "execution_sandbox": {
+    "description": "The `execute` command runs shell commands in a sandboxed environment.",
+    "available_tools": ["python", "pip", "bash", "selenium"],
+    "unavailable_tools": ["npm", "node"]
+  },
+  "task_validation_strategy": {
+    "python_projects": "Execute the main Python script and check for a successful exit code (0) and expected output.",
+    "web_projects": [
+      "Since you cannot see the browser yourself, you MUST validate web projects by writing a Python script that uses Selenium.",
+      "Example Selenium Script ('test_game.py'):",
+      "from selenium import webdriver; from selenium.webdriver.common.by import By; import time;",
+      "driver = webdriver.Chrome()",
+      "try:",
+      "  driver.get('[http://127.0.0.1:5001/projects/JS_Game/index.html](http://127.0.0.1:5001/projects/JS_Game/index.html)')",
+      "  time.sleep(2)",
+      "  canvas = driver.find_element(By.ID, 'gameCanvas')",
+      "  if canvas:",
+      "    print('SUCCESS: Canvas element found.')",
+      "  else:",
+      "    print('FAILURE: Canvas element not found.')",
+      "finally: driver.quit()",
+      "To run this test, you would use the `execute` action with the command 'python test_game.py'"
+    ]
+  },
+  "available_user_tools": {
+      "import_source": "The user can import files/folders into the project directory. You can suggest this if needed."
+  }
+}
+```
+
+**Your Core Workflow:**
+1.  **OBSERVE**: Analyze the goal, file listing, and previous results.
+2.  **ORIENT**: Understand your situation based on your environmental awareness.
+3.  **DECIDE**: Formulate a precise, step-by-step plan. If a previous attempt failed, explain why and create a new strategy.
+4.  **ACT**: Execute your plan using the available actions.
+
+**Available Actions (JSON Response):**
+```json
+{
+  "thought": "Your detailed analysis and plan. If you failed, explain the error and your new approach. For web projects, explicitly state your plan to test with Selenium.",
+  "actions": [
+    { "type": "writeFile", "path": "path/to/file.py", "content": "Full file content." },
+    { "type": "execute", "command": "python test_script.py" },
+    { "type": "readFile", "path": "path/to/file.txt" },
+    { "type": "requestFeedback", "details": "Use only as a last resort after multiple different strategies have failed." },
+    { "type": "finishTask", "summary": "A summary of how you successfully completed and validated the task." }
+  ]
+}
+```
+
+**Critical Rules for Success:**
+- **JavaScript/Web Projects**: You MUST load all external JS libraries (e.g., Matter.js) from a CDN URL in a `<script>` tag in your `index.html`. Do NOT use `npm` or `import/require` in client-side JS.
+- **Be Relentless**: Do not give up after one failure. If `npm` fails, remember it's unavailable and use the CDN method. If a Selenium script fails, debug the script or the web page's code.
+"""
+
+CONFIG: Dict[str, Any] = {
+    "gemini_api_key": os.environ.get("GEMINI_API_KEY"),
+    "model_name": "gemini-1.5-flash-latest",
+    "system_instruction": SYSTEM_INSTRUCTION,
+    "base_projects_dir": BASE_PROJECTS_DIR,
+}
+
+# --- Agent Class ---
+class Agent:
+    def __init__(self, project_name: str, venv_path: str, tools_path: str, config: Dict[str, Any]):
+        self.project_name = project_name
+        self.config = config
+        self.project_path = os.path.join(config["base_projects_dir"], project_name)
+        self.venv_path = venv_path
+        self.tools_path = tools_path
+        self.full_cycle_history: List[Dict[str, Any]] = []
+        self.task_completed = False
+        self.waiting_for_input = False
+        self.cycle_count = 0
+        self.initial_prompt = ""
+        self.current_cycle_logs: List[str] = []
+        self.active_processes: Dict[str, subprocess.Popen] = {}
+        self._setup_workspace()
+        self.load_project_state()
+
+    def _setup_workspace(self):
+        os.makedirs(self.project_path, exist_ok=True)
+        os.makedirs(self.tools_path, exist_ok=True)
+
+    def _get_state_file_path(self) -> str:
+        return os.path.join(self.project_path, '.agent_state.json')
+
+    def load_project_state(self):
+        state_path = self._get_state_file_path()
+        if os.path.exists(state_path):
+            try:
+                with open(state_path, 'r', encoding='utf-8') as f:
+                    state = json.load(f)
+                    self.initial_prompt = state.get('initial_prompt', '')
+                    self.full_cycle_history = state.get('full_cycle_history', [])
+                    self.task_completed = state.get('task_completed', False)
+                    self.cycle_count = state.get('cycle_count', 0)
+                    self.waiting_for_input = state.get('waiting_for_input', False)
+            except (json.JSONDecodeError, IOError) as e:
+                self.reset_task(keep_files=False)
+
+    def save_project_state(self):
+        state = {
+            'project_name': self.project_name, 'initial_prompt': self.initial_prompt,
+            'cycle_count': self.cycle_count, 'task_completed': self.task_completed,
+            'waiting_for_input': self.waiting_for_input, 'full_cycle_history': self.full_cycle_history,
+        }
+        state_path = self._get_state_file_path()
+        try:
+            with open(state_path, 'w', encoding='utf-8') as f: json.dump(state, f, indent=2)
+        except IOError as e: logging.error(f"CRITICAL: Could not save state for project '{self.project_name}': {e}")
+
+    def _resolve_path(self, relative_path: str) -> Optional[str]:
+        if not relative_path or ".." in relative_path.split(os.path.sep): return None
+        allowed_dir = os.path.realpath(self.project_path)
+        target_path = os.path.realpath(os.path.join(allowed_dir, relative_path))
+        if os.path.commonpath([allowed_dir, target_path]) != allowed_dir: return None
+        return target_path
+
+    def _save_file(self, relative_path: str, content: str) -> str:
+        self.current_cycle_logs.append(f"Writing file: '{relative_path}'")
+        full_path = self._resolve_path(relative_path)
+        if not full_path: return f"ERROR: Invalid path: {relative_path}."
+        try:
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, 'w', encoding='utf-8') as f: f.write(content)
+            return f"Successfully wrote {len(content)} bytes to {relative_path}"
+        except Exception as e: return f"ERROR: Could not save file: {e}"
+
+    def _read_file(self, relative_path: str) -> str:
+        self.current_cycle_logs.append(f"Reading file: '{relative_path}'")
+        full_path = self._resolve_path(relative_path)
+        if not full_path: return f"ERROR: Invalid path: {relative_path}."
+        if not os.path.exists(full_path): return f"ERROR: File not found at '{relative_path}'."
+        try:
+            with open(full_path, 'r', encoding='utf-8') as f: return f.read()
+        except Exception as e: return f"ERROR: Could not read file: {e}"
+
+    def get_file_listing(self) -> str:
+        listing = []
+        for root, dirs, files in os.walk(self.project_path):
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            files = [f for f in files if not f.startswith('.')]
+            level = root.replace(self.project_path, '').count(os.sep)
+            indent = ' ' * 4 * level
+            listing.append(f"{indent}{os.path.basename(root)}/")
+            sub_indent = ' ' * 4 * (level + 1)
+            for f in sorted(files): listing.append(f"{sub_indent}{f}")
+        return "\n".join(listing) if listing else "Directory is empty."
+
+    def start_task(self, initial_prompt: str):
+        self.reset_task(keep_files=False)
+        self.initial_prompt = initial_prompt
+        self.save_project_state()
+        return {"status": "Task started", "project_name": self.project_name}
+
+    def reset_task(self, keep_files: bool = False):
+        for pid in list(self.active_processes.keys()): self.terminate_command(pid)
+        if not keep_files and os.path.exists(self.project_path):
+            shutil.rmtree(self.project_path)
+            self._setup_workspace()
+        elif keep_files:
+            state_file = self._get_state_file_path()
+            if os.path.exists(state_file): os.remove(state_file)
+        self.full_cycle_history, self.task_completed, self.waiting_for_input = [], False, False
+        self.cycle_count, self.initial_prompt = 0, ""
+        self.save_project_state()
+        return {"status": "Project has been reset." if keep_files else f"Project '{self.project_name}' deleted."}
+
+    def import_source(self, source_path: str) -> Dict[str, str]:
+        if not os.path.exists(source_path):
+            return {"error": f"Source path does not exist: {source_path}"}
+        destination_name = os.path.basename(source_path)
+        destination_path = os.path.join(self.project_path, destination_name)
+        try:
+            if os.path.isdir(source_path):
+                if os.path.exists(destination_path): shutil.rmtree(destination_path)
+                shutil.copytree(source_path, destination_path)
+            else:
+                shutil.copy2(source_path, destination_path)
+            logging.info(f"Imported '{source_path}' to '{destination_path}'")
+            return {"status": f"Successfully imported '{destination_name}'."}
+        except Exception as e:
+            logging.error(f"Error importing source '{source_path}': {e}")
+            return {"error": f"Failed to import source: {e}"}
+
+    def _call_gemini_api(self, prompt_context: Dict) -> str:
+        api_key = self.config["gemini_api_key"]
+        if not api_key: return '{"thought": "CRITICAL ERROR: API Key is missing.", "actions": []}'
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(model_name=self.config["model_name"], system_instruction=self.config["system_instruction"])
+            response = model.generate_content([{"role": "user", "parts": [{"text": json.dumps(prompt_context, indent=2)}]}])
+            return response.text.strip()
+        except Exception as e:
+            return f'{{"thought": "{json.dumps(f"Error: API call failed: {e}")}", "actions": []}}'
+
+    def _parse_ai_response(self, response: str) -> Tuple[str, List[Dict[str, Any]]]:
+        match = re.search(r'```json\s*(\{.*?\})\s*```', response, re.DOTALL)
+        json_str = match.group(1) if match else response[response.find('{'):response.rfind('}')+1]
+        try:
+            data = json.loads(json_str)
+            return data.get("thought", ""), data.get("actions", [])
+        except json.JSONDecodeError as e:
+            return f"CRITICAL JSON ERROR: Failed to decode AI response: {e}", []
+
+    def _install_requirements(self) -> Tuple[bool, str]:
+        requirements_path = os.path.join(self.project_path, "requirements.txt")
+        if not os.path.exists(requirements_path): return True, "No requirements.txt."
+        self.current_cycle_logs.append(f"Installing dependencies...")
+        pip_executable = os.path.join(self.venv_path, "Scripts" if sys.platform == "win32" else "bin", "pip")
+        try:
+            result = subprocess.run([pip_executable, "install", "-r", requirements_path], capture_output=True, text=True, check=False, timeout=300)
+            report = f"--- Installation Report ---\nSTDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}"
+            self.current_cycle_logs.append("Dependencies installed." if result.returncode == 0 else "Installation failed.")
+            return result.returncode == 0, report
+        except Exception as e:
+            return False, f"Installation error: {e}"
+
+    def _execute_command(self, command: str) -> Tuple[bool, str, Optional[str]]:
+        if not command: return False, "Error: No command provided.", None
+        self.current_cycle_logs.append(f"Executing: `{command}`")
+        env = os.environ.copy()
+        venv_bin = os.path.join(self.venv_path, "Scripts" if sys.platform == "win32" else "bin")
+        env["PATH"] = f"{venv_bin}{os.pathsep}{env['PATH']}"
+        env["PYTHONPATH"] = f"{self.project_path}{os.pathsep}{self.tools_path}{os.pathsep}{env.get('PYTHONPATH', '')}"
+        try:
+            args = shlex.split(command)
+            process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=self.project_path, env=env)
+            process_id = str(uuid.uuid4())
+            self.active_processes[process_id] = process
+            self.current_cycle_logs.append(f"Process started with ID: {process_id}.")
+            return True, f"Process started with ID {process_id}.", process_id
+        except Exception as e:
+            self.current_cycle_logs.append(f"Execution failed: {e}")
+            return False, f"Error: {e}", None
+
+    def terminate_command(self, process_id: str) -> Dict[str, str]:
+        process = self.active_processes.pop(process_id, None)
+        if not process: return {"status": "Process not found."}
+        try:
+            process.terminate()
+            process.wait(timeout=5)
+            return {"status": f"Process {process_id} terminated."}
+        except subprocess.TimeoutExpired:
+            process.kill()
+            return {"status": f"Process {process_id} forcefully killed."}
+        except Exception as e: return {"error": f"Error terminating process: {e}"}
+
+    def run_cycle(self, feedback: str = "") -> Dict[str, Any]:
+        if self.task_completed: return {"status": "Task already completed."}
+        if self.waiting_for_input and not feedback: return {"status": "Waiting for feedback."}
+        self.current_cycle_logs = []
+        if feedback:
+            self.waiting_for_input = False
+            self.current_cycle_logs.append("Received human feedback.")
+        self.cycle_count += 1
+        self.current_cycle_logs.append(f"Starting Cycle {self.cycle_count}.")
+        last_cycle = self.full_cycle_history[-1] if self.full_cycle_history else {}
+        prompt_context = { "main_goal": self.initial_prompt, "project_file_listing": self.get_file_listing(), "last_cycle_summary": last_cycle, "new_human_feedback": feedback or None }
+        self.current_cycle_logs.append("Thinking...")
+        ai_response_str = self._call_gemini_api(prompt_context)
+        thought, actions = self._parse_ai_response(ai_response_str)
+        self.current_cycle_logs.append("Plan received. Starting actions.")
+        cycle_data = { "cycle_count": self.cycle_count, "thought": thought, "raw_ai_response": ai_response_str, "actions_taken": [], "execution_report": None, "feedback_received": feedback or None, "log_entries": [] }
+        if any(a.get("type") == "writeFile" and a.get("path") == "requirements.txt" for a in actions):
+            install_success, install_report = self._install_requirements()
+            if not install_success:
+                cycle_data["execution_report"] = f"Dependency installation failed.\n{install_report}"
+                cycle_data["log_entries"] = self.current_cycle_logs
+                self.full_cycle_history.append(cycle_data)
+                self.save_project_state()
+                return cycle_data
+        for action in actions:
+            action_result = {"action": action, "result": "PENDING"}
+            cycle_data["actions_taken"].append(action_result)
+            action_type = action.get("type")
+            if action_type == "writeFile": action_result["result"] = self._save_file(action.get("path"), action.get("content", ""))
+            elif action_type == "readFile": action_result["result"] = self._read_file(action.get("path"))
+            elif action_type == "requestFeedback":
+                self.waiting_for_input = True
+                action_result["result"] = f"Agent requested feedback: {action.get('details')}"
+            elif action_type == "finishTask":
+                self.task_completed = True
+                action_result["result"] = f"Task marked as complete. Summary: {action.get('summary')}"
+            elif action_type == "execute":
+                exec_success, exec_report, pid = self._execute_command(action.get("command"))
+                cycle_data["execution_report"] = exec_report
+                action_result["result"] = f"SUCCESS (PID: {pid})" if exec_success else "FAILURE"
+        cycle_data["log_entries"] = self.current_cycle_logs
+        self.full_cycle_history.append(cycle_data)
+        self.save_project_state()
+        return cycle_data
+
+    def finalize_task(self):
+        self.task_completed = True
+        self.save_project_state()
+        return {"status": "Task marked as complete."}
+
+# --- Agent Manager (Singleton) ---
+class AgentManager:
+    _instance = None
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(AgentManager, cls).__new__(cls)
+            cls._instance.agents: Dict[str, Agent] = {}
+            cls._instance.venv_path = SHARED_VENV_PATH
+            cls._instance.tools_path = SHARED_TOOLS_PATH
+            cls._instance.config = CONFIG
+            cls._instance._setup_shared_environment()
+        return cls._instance
+
+    def _setup_shared_environment(self):
+        os.makedirs(self.config["base_projects_dir"], exist_ok=True)
+        os.makedirs(self.tools_path, exist_ok=True)
+        if not os.path.exists(self.venv_path):
+            venv.create(self.venv_path, with_pip=True)
+            pip_executable = os.path.join(self.venv_path, "Scripts" if sys.platform == "win32" else "bin", "pip")
+            try:
+                subprocess.run([pip_executable, "install", "requests", "beautifulsoup4", "selenium", "webdriver-manager", "lxml"], check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError as e: logging.error(f"Failed to pre-install packages in venv: {e.stderr}")
+
+    def get_agent(self, project_name: str) -> Agent:
+        if project_name not in self.agents: self.agents[project_name] = Agent(project_name, self.venv_path, self.tools_path, self.config)
+        self.agents[project_name].load_project_state()
+        return self.agents[project_name]
+
+    def list_projects(self) -> List[Dict[str, Any]]:
+        base_dir = self.config["base_projects_dir"]
+        projects = []
+        if not os.path.exists(base_dir): return []
+        excluded_dirs = {os.path.basename(self.venv_path), os.path.basename(self.tools_path)}
+        for d in os.listdir(base_dir):
+            if os.path.isdir(os.path.join(base_dir, d)) and d not in excluded_dirs:
+                agent = self.get_agent(d)
+                projects.append({ "name": d, "status": "Completed" if agent.task_completed else "In Progress", "cycles": agent.cycle_count })
+        return projects
+
+# --- Flask App ---
+app = Flask(__name__, template_folder='templates', static_folder='static')
+agent_manager = AgentManager()
+
+def get_agent_from_request() -> Optional[Agent]:
+    project_name = request.args.get('project_name') or (request.is_json and request.get_json().get('project_name'))
+    if not project_name: return None
+    return agent_manager.get_agent(project_name)
+
+@app.route('/')
+def index(): return render_template('index.html')
+
+@app.route('/projects/<path:project_path>')
+def serve_project_file(project_path):
+    return send_from_directory(CONFIG['base_projects_dir'], project_path)
+
+@app.route('/api/projects', methods=['GET'])
+def list_projects_route(): return jsonify(agent_manager.list_projects())
+
+@app.route('/api/projects', methods=['POST'])
+def create_project_route():
+    data = request.get_json()
+    project_name, prompt = data.get('project_name'), data.get('prompt')
+    if not project_name or not prompt: return jsonify({"error": "project_name and prompt are required"}), 400
+    agent = agent_manager.get_agent(project_name)
+    return jsonify(agent.start_task(prompt))
+
+@app.route('/api/projects/<project_name>', methods=['DELETE'])
+def delete_project_route(project_name):
+    agent = agent_manager.get_agent(project_name)
+    result = agent.reset_task(keep_files=False)
+    if project_name in agent_manager.agents: del agent_manager.agents[project_name]
+    return jsonify(result)
+
+@app.route('/api/agent/reset', methods=['POST'])
+def reset_agent_route():
+    agent = get_agent_from_request()
+    if not agent: return jsonify({"error": "project_name is required"}), 400
+    return jsonify(agent.reset_task(keep_files=True))
+
+@app.route('/api/agent/status', methods=['GET'])
+def get_agent_status_route():
+    agent = get_agent_from_request()
+    if not agent: return jsonify({"error": "project_name is required"}), 400
+    active_processes = {pid: {"command": " ".join(p.args)} for pid, p in agent.active_processes.items() if p.poll() is None}
+    return jsonify({
+        "project_name": agent.project_name, "initial_prompt": agent.initial_prompt,
+        "cycle_history": agent.full_cycle_history, "task_completed": agent.task_completed,
+        "waiting_for_input": agent.waiting_for_input, "cycle_count": agent.cycle_count,
+        "file_listing": agent.get_file_listing(), "active_processes": active_processes
+    })
+
+@app.route('/api/agent/run-cycle', methods=['POST'])
+def run_agent_cycle_route():
+    agent = get_agent_from_request()
+    if not agent: return jsonify({"error": "project_name is required"}), 400
+    data = request.get_json()
+    return jsonify(agent.run_cycle(feedback=data.get('feedback', '')))
+
+@app.route('/api/agent/file-content', methods=['GET'])
+def get_file_content_route():
+    agent = get_agent_from_request()
+    if not agent: return jsonify({"error": "project_name is required"}), 400
+    file_path = request.args.get('path')
+    if not file_path: return jsonify({"error": "path is required"}), 400
+    content = agent._read_file(file_path)
+    if content.startswith("ERROR"): return jsonify({"error": content}), 404
+    return jsonify({"path": file_path, "content": content})
+
+@app.route('/api/agent/execute', methods=['POST'])
+def execute_file_route():
+    agent = get_agent_from_request()
+    if not agent: return jsonify({"error": "project_name is required"}), 400
+    data = request.get_json()
+    command = data.get('command')
+    if not command: return jsonify({"error": "command is required"}), 400
+    success, report, pid = agent._execute_command(command)
+    return jsonify({"success": success, "report": report, "pid": pid})
+
+@app.route('/api/agent/terminate', methods=['POST'])
+def terminate_process_route():
+    agent = get_agent_from_request()
+    if not agent: return jsonify({"error": "project_name is required"}), 400
+    data = request.get_json()
+    pid = data.get('pid')
+    if not pid: return jsonify({"error": "pid is required"}), 400
+    return jsonify(agent.terminate_command(pid))
+
+@app.route('/api/agent/finalize', methods=['POST'])
+def finalize_task_route():
+    agent = get_agent_from_request()
+    if not agent: return jsonify({"error": "project_name is required"}), 400
+    return jsonify(agent.finalize_task())
+
+@app.route('/api/agent/import-source', methods=['POST'])
+def import_source_route():
+    agent = get_agent_from_request()
+    if not agent: return jsonify({"error": "project_name is required"}), 400
+    data = request.get_json()
+    source_path = data.get('source_path')
+    if not source_path: return jsonify({"error": "source_path is required"}), 400
+    result = agent.import_source(source_path)
+    if "error" in result: return jsonify(result), 400
+    return jsonify(result)
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5001, use_reloader=False)
+
+
+    <!DOCTYPE html>
+    <html lang="en" class="h-full">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Autonomous Agent UI</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --font-header: 'Orbitron', sans-serif; --font-body: 'Roboto Mono', monospace;
+                --bg-main: #f3f4f6; --bg-panel: #ffffff; --text-main: #111827;
+                --text-light: #6b7280; --border-color: #e5e7eb; --accent-color: #4f46e5;
+            }
+            body { font-family: var(--font-header); background-color: var(--bg-main); color: var(--text-main); }
+            .font-body { font-family: var(--font-body); }
+            ::-webkit-scrollbar { width: 8px; }
+            ::-webkit-scrollbar-track { background: var(--border-color); }
+            ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+            .spinner-light { border-top-color: #fff; }
+            @keyframes spin { to { transform: rotate(360deg); } }
+            .spinner { border: 2px solid rgba(0,0,0,0.2); width: 16px; height: 16px; border-radius: 50%; border-top-color: var(--text-main); animation: spin 1s ease infinite; }
+            .btn { transition: all 0.2s ease; }
+            .btn:active { transform: scale(0.97); }
+            .actions-bubble pre, .execution-bubble pre { white-space: pre-wrap; word-wrap: break-word; word-break: break-all; }
+            .left-panel-collapsed { width: 4rem !important; }
+            .left-panel-collapsed .nav-text, .left-panel-collapsed .project-list-header { display: none; }
+            .left-panel-collapsed .nav-item { justify-content: center; }
+        </style>
+    </head>
+    <body class="h-full">
+        <div id="app" class="flex h-screen antialiased">
+
+            <!-- Left Panel -->
+            <aside id="left-panel" class="bg-gray-800 text-white p-4 flex flex-col shrink-0 transition-all duration-300 w-64">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center nav-item">
+                        <i class="fas fa-robot text-3xl text-indigo-400 mr-3"></i>
+                        <h1 class="text-2xl font-bold nav-text">AutoAgent</h1>
+                    </div>
+                    <button id="toggle-nav-btn" class="text-gray-400 hover:text-white"><i class="fas fa-bars"></i></button>
+                </div>
+                <button id="new-project-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 font-bold py-2 px-4 rounded-lg mb-4 flex items-center justify-center btn nav-item">
+                    <i class="fas fa-plus mr-2"></i><span class="nav-text">New Project</span>
+                </button>
+                <h2 class="text-xs font-bold uppercase text-gray-400 mb-2 px-2 project-list-header">Projects</h2>
+                <div id="project-list" class="flex-grow overflow-y-auto pr-2"></div>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="flex-1 flex flex-col min-w-0">
+                <main id="main-content" class="flex-grow p-4 md:p-6 flex flex-col bg-gray-100 overflow-y-auto">
+                    <div id="welcome-view" class="flex flex-col items-center justify-center h-full text-center">
+                        <i class="fas fa-project-diagram text-6xl text-gray-400 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-800">Welcome to AutoAgent</h2>
+                        <p class="text-gray-500 font-body">Select a project or create a new one.</p>
+                    </div>
+
+                    <div id="project-view" class="hidden h-full flex flex-col">
+                        <div id="control-header" class="bg-white rounded-lg shadow-lg p-4 mb-4 shrink-0"></div>
+                        <div id="activity-feed" class="flex-grow overflow-y-auto mb-4 pr-2 font-body bg-white rounded-lg shadow-lg p-4"></div>
+                        <div id="feedback-bar" class="shrink-0 pt-4">
+                            <div class="flex gap-4">
+                                <textarea id="feedback-input" class="w-full bg-white border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-body shadow-md" rows="1" placeholder="Provide guidance and press Enter..."></textarea>
+                                <button id="send-feedback-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg btn shadow-md">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+
+            <!-- Right Panel -->
+            <aside id="right-panel" class="w-96 bg-white p-4 flex-col shrink-0 border-l border-gray-200 shadow-lg hidden lg:flex">
+                <div id="workspace-container" class="flex flex-col h-full">
+                    <h2 class="text-lg font-bold uppercase text-gray-800 mb-4">Workspace</h2>
+                    <div id="active-processes-container" class="mb-4"></div>
+                    <div id="file-listing" class="flex-grow overflow-y-auto font-mono text-sm pr-2 bg-gray-50 p-2 rounded-md min-h-0"></div>
+                    <div id="import-container" class="pt-4 mt-4 border-t border-gray-200">
+                        <label class="text-sm font-bold text-gray-600">Import Source</label>
+                        <div class="flex gap-2 mt-1">
+                            <input id="source-path" type="text" placeholder="Absolute path to file/folder" class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 font-body text-xs">
+                            <button id="import-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold p-2 rounded-lg btn"><i class="fas fa-upload"></i></button>
+                        </div>
+                    </div>
+                    <div id="project-actions" class="pt-4 mt-4 border-t border-gray-200 space-y-2"></div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Modals -->
+        <div id="new-project-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-2xl text-gray-800">
+                <h2 class="text-2xl font-bold mb-4">Create New Project</h2>
+                <div class="mb-4">
+                    <label for="new-project-name" class="block text-sm font-medium text-gray-600 mb-1 font-body">Project Name</label>
+                    <input type="text" id="new-project-name" class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-body" placeholder="e.g., flask-api-hello-world">
+                </div>
+                <div class="mb-6">
+                    <label for="new-project-prompt" class="block text-sm font-medium text-gray-600 mb-1 font-body">Main Goal</label>
+                    <textarea id="new-project-prompt" class="w-full bg-gray-100 border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-body" rows="5" placeholder="Describe the task for the agent..."></textarea>
+                </div>
+                <div class="flex justify-end gap-4">
+                    <button id="cancel-new-project" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg transition btn">Cancel</button>
+                    <button id="confirm-new-project" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition btn">Create</button>
+                </div>
+            </div>
+        </div>
+        <div id="file-content-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-4xl h-5/6 flex flex-col">
+                <div class="flex justify-between items-center mb-4"><h2 id="file-modal-title" class="text-xl font-bold text-gray-800 font-mono"></h2><button id="close-file-modal" class="text-gray-400 hover:text-gray-800 text-2xl btn">&times;</button></div>
+                <div class="flex-grow bg-gray-900 text-white rounded-md overflow-auto"><pre><code id="file-modal-content" class="text-sm p-4 block whitespace-pre-wrap font-body"></code></pre></div>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_BASE = '/api';
+            let state = { projects: [], currentProject: null, agentStatus: {}, isCycleRunning: false, isAutonomous: false, autonomousTimeoutId: null };
+
+            const D = (id) => document.getElementById(id);
+            const projectList = D('project-list'), newProjectBtn = D('new-project-btn'), newProjectModal = D('new-project-modal'),
+                  cancelNewProjectBtn = D('cancel-new-project'), confirmNewProjectBtn = D('confirm-new-project'),
+                  welcomeView = D('welcome-view'), projectView = D('project-view'), rightPanel = D('right-panel'),
+                  feedbackInput = D('feedback-input'), sendFeedbackBtn = D('send-feedback-btn'),
+                  fileContentModal = D('file-content-modal'), closeFileModalBtn = D('close-file-modal'),
+                  activityFeed = D('activity-feed'), controlHeader = D('control-header'), fileListing = D('file-listing'),
+                  projectActions = D('project-actions'), activeProcessesContainer = D('active-processes-container'),
+                  importBtn = D('import-btn'), sourcePathInput = D('source-path'), leftPanel = D('left-panel'),
+                  toggleNavBtn = D('toggle-nav-btn');
+
+            const api = {
+                get: (endpoint) => fetch(`${API_BASE}${endpoint}`).then(res => res.ok ? res.json() : Promise.reject(res)),
+                post: (endpoint, body) => fetch(`${API_BASE}${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(res => res.ok ? res.json() : Promise.reject(res)),
+                delete: (endpoint) => fetch(`${API_BASE}${endpoint}`, { method: 'DELETE' }).then(res => res.ok ? res.json() : Promise.reject(res)),
+            };
+
+            const renderProjectList = () => {
+                projectList.innerHTML = state.projects.length === 0 ? '<p class="text-sm text-gray-400 px-2 nav-text">No projects yet.</p>' : '';
+                state.projects.forEach(p => {
+                    const el = document.createElement('div');
+                    el.className = `p-2 rounded-lg cursor-pointer mb-1 flex items-center nav-item ${state.currentProject === p.name ? 'bg-indigo-500' : 'hover:bg-gray-700'}`;
+                    el.innerHTML = `<i class="fas fa-folder mr-3"></i><span class="nav-text">${p.name}</span>`;
+                    el.onclick = () => selectProject(p.name);
+                    projectList.appendChild(el);
+                });
+            };
+
+            const renderControlHeader = () => {
+                if (!state.currentProject) { controlHeader.innerHTML = ''; return; }
+                controlHeader.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">${state.agentStatus.project_name}</h2>
+                            <p class="text-sm text-gray-500 max-w-2xl truncate font-body">${state.agentStatus.initial_prompt}</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                             <div class="flex items-center gap-2 font-body text-sm">
+                                <label for="max-cycles" class="text-gray-600">Max:</label>
+                                <input id="max-cycles" type="number" value="15" title="Max autonomous cycles" class="bg-gray-100 w-16 text-center rounded-md border border-gray-300 p-1">
+                                <label for="auto-delay" class="text-gray-600">Delay:</label>
+                                <input id="auto-delay" type="number" value="1500" title="Delay (ms)" class="bg-gray-100 w-20 text-center rounded-md border border-gray-300 p-1">
+                            </div>
+                            <button id="play-pause-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center w-36 btn">
+                                <i class="fas fa-play mr-2"></i>Engage
+                            </button>
+                        </div>
+                    </div>`;
+                D('play-pause-btn').onclick = handlePlayPause;
+                updatePlayPauseButton();
+            };
+
+            const renderProjectActions = () => {
+                if (!state.currentProject) { projectActions.innerHTML = ''; return; }
+                projectActions.innerHTML = `
+                    <button id="finalize-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg btn"><i class="fas fa-check-circle mr-2"></i>Finalize Task</button>
+                    <button id="cleanup-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-800 font-bold py-2 px-4 rounded-lg btn"><i class="fas fa-broom mr-2"></i>Cleanup Task</button>
+                    <button id="delete-project-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg btn"><i class="fas fa-trash mr-2"></i>Delete Project</button>
+                `;
+                D('finalize-btn').onclick = handleFinalize;
+                D('cleanup-btn').onclick = handleCleanup;
+                D('delete-project-btn').onclick = handleDeleteProject;
+            };
+
+            const updatePlayPauseButton = () => {
+                const btn = D('play-pause-btn');
+                if (!btn) return;
+                if (state.isAutonomous) {
+                    btn.innerHTML = `<div class="spinner spinner-light"></div> Pausing`;
+                    btn.className = btn.className.replace('bg-green-500 hover:bg-green-600', 'bg-yellow-500 hover:bg-yellow-600');
+                } else {
+                    btn.innerHTML = `<i class="fas fa-play mr-2"></i>Engage`;
+                    btn.className = btn.className.replace('bg-yellow-500 hover:bg-yellow-600', 'bg-green-500 hover:bg-green-600');
+                }
+                btn.disabled = state.isCycleRunning;
+            };
+
+            const renderActivityFeed = () => {
+                activityFeed.innerHTML = '';
+                if (!state.agentStatus.cycle_history || state.agentStatus.cycle_history.length === 0) {
+                    activityFeed.innerHTML = '<div class="text-center text-gray-400 py-8">Agent is ready. Engage to begin.</div>';
+                    return;
+                }
+                state.agentStatus.cycle_history.forEach(cycle => {
+                    const cycleEl = document.createElement('div');
+                    cycleEl.className = 'mb-6';
+
+                    const logItems = (cycle.log_entries || []).map(log => `<li class="text-xs text-gray-500"><i class="fas fa-arrow-right mr-2"></i>${log}</li>`).join('');
+                    const logsHtml = logItems ? `<div class="p-3 bg-gray-50 rounded-md mt-2"><ul class="space-y-1">${logItems}</ul></div>` : '';
+                    const feedbackHtml = cycle.feedback_received ? `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-md"><strong><i class="fas fa-comment-dots mr-2 text-yellow-500"></i>Human Feedback:</strong><div class="whitespace-pre-wrap mt-1 text-gray-700">${cycle.feedback_received}</div></div>` : '';
+                    const thoughtHtml = `<div class="p-3 bg-blue-50 border border-blue-200 rounded-md mt-2"><strong><i class="fas fa-lightbulb mr-2 text-blue-500"></i>Agent's Plan:</strong><div class="whitespace-pre-wrap mt-1 text-gray-700">${cycle.thought}</div></div>`;
+                    let actionsHtml = '';
+                    if(cycle.actions_taken && cycle.actions_taken.length > 0) {
+                        const actionItems = cycle.actions_taken.map(action => {
+                            const params = { ...action.action }; delete params.type;
+                            return `<div class="mt-2 text-sm"><p class="font-bold text-purple-600">${action.action.type}</p><pre class="text-xs p-2 bg-gray-800 text-white rounded-md mt-1">${JSON.stringify(params, null, 2)}</pre></div>`;
+                        }).join('');
+                        actionsHtml = `<div class="p-3 bg-purple-50 border border-purple-200 rounded-md mt-2 actions-bubble"><strong><i class="fas fa-cogs mr-2 text-purple-500"></i>Actions Taken:</strong>${actionItems}</div>`;
+                    }
+                    let executionReportHtml = '';
+                    if (cycle.execution_report) {
+                        const isError = /exit code: [^0]/i.test(cycle.execution_report) || /error/i.test(cycle.execution_report);
+                        executionReportHtml = `<div class="p-3 bg-gray-800 rounded-md mt-2 execution-bubble"><strong><i class="fas fa-terminal mr-2 text-gray-400"></i>Execution Report:</strong><pre class="text-xs mt-1 ${isError ? 'text-red-400' : 'text-green-400'}">${cycle.execution_report}</pre></div>`;
+                    }
+                    cycleEl.innerHTML = `<div class="flex items-center gap-4 mb-2"><span class="text-indigo-600 font-bold">Cycle ${cycle.cycle_count}</span><hr class="flex-grow border-gray-200"></div>${feedbackHtml}${logsHtml}${thoughtHtml}${actionsHtml}${executionReportHtml}`;
+                    activityFeed.appendChild(cycleEl);
+                });
+                activityFeed.scrollTop = activityFeed.scrollHeight;
+            };
+
+            const renderFileSystem = () => {
+                if (!state.agentStatus.file_listing) { fileListing.innerHTML = '<p class="text-gray-500">No files yet.</p>'; return; }
+                const fileHtml = state.agentStatus.file_listing.split('\n').map(line => {
+                    const trimmedLine = line.trim();
+                    const isFile = !line.trim().endsWith('/') && trimmedLine.length > 0;
+                    if (isFile) {
+                        const isHtml = trimmedLine.endsWith('.html');
+                        const isPy = trimmedLine.endsWith('.py');
+                        const filePath = trimmedLine.replace(/^[\\/]/, ''); // Clean path for URL
+                        const fullPath = `${state.currentProject}/${filePath}`;
+                        return `<div class="flex items-center justify-between hover:bg-gray-200 rounded p-1 group">
+                                    <span class="cursor-pointer truncate" onclick="window.app.viewFile('${filePath}')">${line}</span>
+                                    <div class="hidden group-hover:flex items-center gap-2">
+                                        ${isPy ? `<i class="fas fa-play-circle text-green-500 cursor-pointer" title="Execute" onclick="window.app.executeFile('python ${filePath}')"></i>` : ''}
+                                        ${isHtml ? `<a href="/projects/${fullPath}" target="_blank"><i class="fas fa-external-link-alt text-blue-500 cursor-pointer" title="Launch in new tab"></i></a>` : ''}
+                                    </div>
+                                </div>`;
+                    }
+                    return `<div class="text-gray-400">${line}</div>`;
+                }).join('');
+                fileListing.innerHTML = `<div class="whitespace-pre text-gray-700">${fileHtml}</div>`;
+            };
+
+            const renderActiveProcesses = () => {
+                const processes = state.agentStatus.active_processes || {};
+                if (Object.keys(processes).length === 0) {
+                    activeProcessesContainer.innerHTML = '';
+                    return;
+                }
+                const processItems = Object.entries(processes).map(([pid, info]) => `
+                    <div class="flex items-center justify-between bg-gray-100 p-2 rounded-md">
+                        <div class="text-xs truncate">
+                            <span class="font-bold">${pid.substring(0,8)}</span>: ${info.command}
+                        </div>
+                        <button class="text-red-500 hover:text-red-700" onclick="window.app.terminateProcess('${pid}')"><i class="fas fa-stop-circle"></i></button>
+                    </div>
+                `).join('');
+                activeProcessesContainer.innerHTML = `
+                    <h3 class="text-sm font-bold uppercase text-gray-600 mb-2">Active Processes</h3>
+                    <div class="space-y-2">${processItems}</div>
+                `;
+            };
+
+            const loadProjects = async () => { try { state.projects = await api.get('/projects'); renderProjectList(); } catch (err) { console.error("Failed to load projects", err); }};
+
+            const selectProject = async (projectName) => {
+                if (state.isCycleRunning) return;
+                state.currentProject = projectName; state.isAutonomous = false;
+                clearTimeout(state.autonomousTimeoutId);
+                welcomeView.classList.add('hidden'); projectView.classList.remove('hidden'); rightPanel.classList.remove('hidden');
+                renderProjectList();
+                await updateAgentStatus();
+            };
+
+            const updateAgentStatus = async () => {
+                if (!state.currentProject) return;
+                try {
+                    state.agentStatus = await api.get(`/agent/status?project_name=${state.currentProject}`);
+                    renderControlHeader(); renderProjectActions(); renderActivityFeed(); renderFileSystem(); renderActiveProcesses();
+                } catch (err) {
+                    console.error("Failed to update agent status", err);
+                    state.currentProject = null;
+                    welcomeView.classList.remove('hidden'); projectView.classList.add('hidden'); rightPanel.classList.add('hidden');
+                    loadProjects();
+                }
+            };
+
+            const runSingleCycle = async (feedback = '') => {
+                if (!state.currentProject || state.isCycleRunning) return;
+                state.isCycleRunning = true; updatePlayPauseButton();
+                if (feedback) {
+                    const tempFeedbackEl = document.createElement('div');
+                    tempFeedbackEl.className = 'p-3 bg-yellow-50 border border-yellow-200 rounded-md mb-4';
+                    tempFeedbackEl.innerHTML = `<strong><i class="fas fa-comment-dots mr-2 text-yellow-500"></i>Human Feedback:</strong><div class="whitespace-pre-wrap mt-1 text-gray-700">${feedback}</div>`;
+                    activityFeed.appendChild(tempFeedbackEl);
+                    activityFeed.scrollTop = activityFeed.scrollHeight;
+                }
+                try {
+                    await api.post('/agent/run-cycle', { project_name: state.currentProject, feedback });
+                    await updateAgentStatus();
+                    if (state.agentStatus.task_completed || state.agentStatus.waiting_for_input) state.isAutonomous = false;
+                } catch (err) { console.error("Failed to run cycle", err); state.isAutonomous = false;
+                } finally { state.isCycleRunning = false; updatePlayPauseButton(); }
+            };
+
+            const autonomousLoop = async () => {
+                if (!state.isAutonomous || state.isCycleRunning) return;
+                const maxCycles = parseInt(D('max-cycles').value, 10);
+                if (state.agentStatus.cycle_count >= maxCycles) { state.isAutonomous = false; updatePlayPauseButton(); return; }
+                await runSingleCycle();
+                if (state.isAutonomous) {
+                    const delay = parseInt(D('auto-delay').value, 10);
+                    state.autonomousTimeoutId = setTimeout(autonomousLoop, delay);
+                }
+            };
+
+            const handlePlayPause = () => { state.isAutonomous = !state.isAutonomous; updatePlayPauseButton(); if (state.isAutonomous) autonomousLoop(); else clearTimeout(state.autonomousTimeoutId); };
+            const handleSendFeedback = () => { const feedback = feedbackInput.value.trim(); if (feedback) { runSingleCycle(feedback); feedbackInput.value = ''; }};
+            const handleCreateProject = async () => {
+                const name = D('new-project-name').value.trim(), prompt = D('new-project-prompt').value.trim();
+                if (!name || !prompt) { alert("Project name and prompt are required."); return; }
+                try { await api.post('/projects', { project_name: name, prompt }); closeNewProjectModal(); await loadProjects(); await selectProject(name); }
+                catch (err) { console.error("Failed to create project", err); }
+            };
+            const handleDeleteProject = async () => {
+                if (!state.currentProject || !confirm(`Delete "${state.currentProject}"? This will remove all files.`)) return;
+                try {
+                    await api.delete(`/projects/${state.currentProject}`);
+                    state.currentProject = null; state.agentStatus = {};
+                    welcomeView.classList.remove('hidden'); projectView.classList.add('hidden'); rightPanel.classList.add('hidden');
+                    await loadProjects();
+                } catch(err) { console.error("Failed to delete project", err); }
+            };
+            const handleCleanup = async () => {
+                if (!state.currentProject || !confirm(`Cleanup "${state.currentProject}"? This will reset the agent's progress but keep the files.`)) return;
+                try { await api.post('/agent/reset', { project_name: state.currentProject }); await updateAgentStatus(); }
+                catch(e) { console.error("Cleanup failed", e); }
+            };
+            const handleFinalize = async () => {
+                if (!state.currentProject || !confirm(`Finalize task for "${state.currentProject}"?`)) return;
+                try {
+                    await api.post('/agent/finalize', { project_name: state.currentProject });
+                    state.isAutonomous = false;
+                    await updateAgentStatus();
+                    alert('Task has been marked as complete!');
+                    selectProject(null); // Go back to welcome screen
+                }
+                catch(e) { console.error("Finalize failed", e); }
+            };
+            const handleTerminate = async (pid) => {
+                try { await api.post('/agent/terminate', { project_name: state.currentProject, pid }); await updateAgentStatus(); }
+                catch(e) { console.error("Terminate failed", e); }
+            };
+            const executeFile = async (command) => {
+                try { await api.post('/agent/execute', { project_name: state.currentProject, command }); await updateAgentStatus(); }
+                catch(e) { console.error("Execute failed", e); }
+            };
+            const handleImport = async () => {
+                const sourcePath = sourcePathInput.value.trim();
+                if (!sourcePath) { alert('Please provide a source path.'); return; }
+                try {
+                    await api.post('/api/agent/import-source', { project_name: state.currentProject, source_path: sourcePath });
+                    sourcePathInput.value = '';
+                    await updateAgentStatus();
+                } catch(e) { console.error("Import failed", e); alert('Failed to import source.'); }
+            };
+
+            const openNewProjectModal = () => { D('new-project-name').value = ''; D('new-project-prompt').value = ''; newProjectModal.classList.remove('hidden'); };
+            const closeNewProjectModal = () => newProjectModal.classList.add('hidden');
+            const viewFile = async (path) => {
+                try { const data = await api.get(`/agent/file-content?project_name=${state.currentProject}&path=${path}`); D('file-modal-title').textContent = data.path; D('file-modal-content').textContent = data.content; fileContentModal.classList.remove('hidden'); }
+                catch (err) { console.error(`Failed to get content for ${path}`, err); }
+            };
+            const closeFileModal = () => fileContentModal.classList.add('hidden');
+
+            newProjectBtn.onclick = openNewProjectModal;
+            cancelNewProjectBtn.onclick = closeNewProjectModal;
+            confirmNewProjectBtn.onclick = handleCreateProject;
+            sendFeedbackBtn.onclick = handleSendFeedback;
+            feedbackInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendFeedback(); } });
+            closeFileModalBtn.onclick = closeFileModal;
+            importBtn.onclick = handleImport;
+            toggleNavBtn.onclick = () => leftPanel.classList.toggle('left-panel-collapsed');
+
+            window.app = { viewFile, executeFile, terminateProcess: handleTerminate };
+            loadProjects();
+        });
+        </script>
+    </body>
+    </html>

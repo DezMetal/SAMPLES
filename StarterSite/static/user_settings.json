@@ -1,0 +1,23 @@
+{
+  "style":
+  {
+     "html": {
+      "text-shadow": ".1rem .1rem .1rem var(--user_shadow)",
+      "background-color": "var(--user_background)",
+      "color": "var(--user_text_color)"
+    }
+  },
+  "user_data": {
+    "account": {
+        "status": "active",
+        "qualified": true,
+        "balance": 0.0,
+        "payment_data": {
+            "acct":"#"
+        }
+    },
+    "pages": {
+
+    }
+  }
+}
