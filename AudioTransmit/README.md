@@ -1,19 +1,17 @@
 # AudioTransmit - Data Over Audio
 
-**AudioTransmit** is a Python tool for transmitting and receiving data encoded as audio signals using Frequency-Shift Keying (FSK) modulation. It can be used to send text or files between devices using a simple audio connection (e.g., a 3.5mm audio cable).
+**AudioTransmit** is a Python application for transmitting and receiving data wirelessly between nearby devices using sound. It encodes data into a sequence of audio tones (FSK modulation) and uses a key-based frequency mapping to ensure that only a receiver with the same key can decode the transmission.
 
-The script uses a secure, key-based frequency mapping to ensure that only a receiver with the same key can decode the transmission.
+This tool does not require any physical connection like an audio cable. One device can transmit data through its speakers, and another device running the script in receiver mode can pick it up through its microphone.
 
 ---
 
 ## How It Works
 
-The script performs two main functions:
+The application operates in two modes:
 
-1.  **Sending:** It converts input data (text or files) into a sequence of bytes. These bytes are then modulated into a series of audio tones at specific frequencies. A preamble signal is added to the beginning of the transmission to allow the receiver to synchronize.
-2.  **Receiving:** It listens to an audio input, performing real-time Fast Fourier Transform (FFT) to detect dominant frequencies. When a valid preamble is detected, it begins decoding the subsequent tones back into data bytes until an end-of-message marker is found.
-
-All signal parameters, such as the base frequency, data rate, and security key, can be configured in the `config.json` file.
+1.  **Sending:** The script converts a string or file into binary data. This data is then modulated into a series of audio tones at specific, high frequencies. A unique, pseudo-random frequency map is generated based on a secret `key` in the `config.json` file. This ensures the transmission is secure, as only a receiver with the identical key can interpret the frequency shifts correctly.
+2.  **Receiving:** In its default mode, the script listens to the microphone input. It performs a real-time Fast Fourier Transform (FFT) on the incoming audio to detect the frequencies being played. After detecting a valid preamble signal, it decodes the subsequent tones back into binary data and reconstructs the original message.
 
 ## Requirements
 
@@ -40,11 +38,11 @@ pip install -r requirements.txt
 
 ## Usage
 
-The script can be run from the command line in either sender or receiver mode.
+The script is run from the command line. To transmit, one machine runs the script with `--send` or `--file`. To receive, another machine simply runs the script with no arguments.
 
 ### To Receive Data
 
-Simply run the script without any arguments. It will start listening on the default audio input device.
+Run the script without any arguments on the receiving machine. It will start listening through the default microphone.
 
 ```bash
 python3 AudioTrans.py
@@ -52,29 +50,23 @@ python3 AudioTrans.py
 
 ### To Transmit Data
 
-You can transmit a simple text string or the contents of a file.
+Run the script on the sending machine with the data you want to transmit.
 
 **Transmit a string:**
 ```bash
-python3 AudioTrans.py --send "Hello, this is a test transmission."
+python3 AudioTrans.py --send "Hello from across the room"
 ```
 
 **Transmit a file:**
 ```bash
-python3 AudioTrans.py --file ./path/to/your/message.txt
+python3 AudioTrans.py --file ./my_secret_message.txt
 ```
 
 ## Configuration
 
-The `config.json` file allows you to customize the signal parameters:
+For a transmission to be successful, **both the sender and receiver must have identical `config.json` files.**
 
-*   `key`: A secret key used to seed the frequency randomization. **Both sender and receiver must use the same key.**
-*   `base_frequency_hz`: The starting frequency for the transmission band.
-*   `frequency_step_hz`: The difference in Hz between each data tone.
-*   `chunk_duration_s`: The duration of each audio tone, which controls the data rate.
-*   `data_bits_per_tone`: The number of bits encoded in each tone (e.g., 4 bits = 16 unique frequencies).
-*   `amplitude_threshold`: The minimum signal power required for the receiver to detect a tone.
-*   `waveform`: The shape of the audio wave ("clipped_sine" or "square").
-*   `preamble_repetitions`: The number of times the preamble pattern is repeated.
-
-A higher `chunk_duration_s` is more reliable but slower. A higher `data_bits_per_tone` increases the data rate but makes the transmission more susceptible to noise.
+*   `key`: A secret string used to seed the frequency randomization. This is the core of the security.
+*   `base_frequency_hz`: The starting frequency for the transmission band. It's best to use high frequencies that are less audible to humans.
+*   `chunk_duration_s`: The duration of each audio tone. A longer duration is more reliable but results in a slower data rate.
+*   `data_bits_per_tone`: The number of bits encoded in each tone. More bits per tone increases the data rate but makes the transmission more susceptible to noise.

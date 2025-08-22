@@ -51,13 +51,13 @@ Here are some of the key projects in this collection:
 *   **[Go to Project &raquo;](./Adv2DComponents/)**
 
 ### 🔊 AudioTransmit - Data Over Audio
-*   **What it is:** A Python tool for transmitting and receiving data encoded as audio signals using FSK modulation. It can send text or files between devices using a simple audio cable.
+*   **What it is:** A tool for transmitting and receiving data wirelessly between nearby devices using sound. It uses a key-based frequency mapping to ensure only clients with the correct key can decode the signal.
 *   **Tech Stack:** Python, `pyaudio`, `numpy`
-*   **Key Skills:** Digital Signal Processing, Data Encoding, Command-Line Tools
+*   **Key Skills:** Digital Signal Processing, Data Encoding, Wireless Communication
 *   **[Go to Project &raquo;](./AudioTransmit/)**
 
 ### 📨 EmailzToJSON - Email Log Parser
-*   **What it is:** A Python script that extracts and parses email logs from a `.zip` archive, converts them into a structured JSON format, and exports the result.
+*   **What it is:** A script that extracts email logs from a `.zip` archive, parses them using a regex pattern, normalizes the data, and exports it to a structured JSON file.
 *   **Tech Stack:** Python, `alive_progress`
-*   **Key Skills:** Data Parsing, Regular Expressions, File I/O
+*   **Key Skills:** Data Parsing, Regular Expressions, Data Normalization
 *   **[Go to Project &raquo;](./EmailzToJSON/)**
