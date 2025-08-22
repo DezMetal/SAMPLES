@@ -49,3 +49,15 @@ Here are some of the key projects in this collection:
 *   **Tech Stack:** Godot, GDScript
 *   **Key Skills:** Game Architecture, Tool Development, GDScript
 *   **[Go to Project &raquo;](./Adv2DComponents/)**
+
+### 🔊 AudioTransmit - Data Over Audio
+*   **What it is:** A Python tool for transmitting and receiving data encoded as audio signals using FSK modulation. It can send text or files between devices using a simple audio cable.
+*   **Tech Stack:** Python, `pyaudio`, `numpy`
+*   **Key Skills:** Digital Signal Processing, Data Encoding, Command-Line Tools
+*   **[Go to Project &raquo;](./AudioTransmit/)**
+
+### 📨 EmailzToJSON - Email Log Parser
+*   **What it is:** A Python script that extracts and parses email logs from a `.zip` archive, converts them into a structured JSON format, and exports the result.
+*   **Tech Stack:** Python, `alive_progress`
+*   **Key Skills:** Data Parsing, Regular Expressions, File I/O
+*   **[Go to Project &raquo;](./EmailzToJSON/)**
