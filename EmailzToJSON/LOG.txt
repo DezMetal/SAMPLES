@@ -1,0 +1,1095 @@
+[08/21/25 15:27]
+- skipping email_logs/..
+
+---
+[08/21/25 15:27]
+- loading "email_logs/emails.txt"..
+|
+---
+[08/21/25 15:27]
+-- "Subject: Project Alpha - Initial Thoughts
+Sender: Alice@exam..."
+|
+---
+[08/21/25 15:27]
+- done
+|
+---
+[08/21/25 15:27]
+- content loaded
+
+---
+[08/21/25 15:27]
+- extracting from content..
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Initial Thoughts
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-26 10:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi Bob,
+
+Just wanted to kick off the discussion about Projec.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Initial Thoughts
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-26 10:30:00
+|
+---
+[08/21/25 15:27]
+--- "Hi Alice,
+
+Good to get this started. I agree that UI is impo.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Initial Thoughts
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-26 11:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi both,
+
+I think we need a clear understanding of the data .."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Initial Thoughts
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-26 11:30:00
+|
+---
+[08/21/25 15:27]
+--- "Tomorrow afternoon works for me. Let's say 2 PM?
+
+Alice
+----.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Initial Thoughts
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-26 11:45:00
+|
+---
+[08/21/25 15:27]
+--- "2 PM is fine. See you then.
+
+Bob
+----------.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Data Model Meeting Notes
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Bob@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-27 16:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi everyone,
+
+Here are the notes from our data model meeting.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Data Model Meeting Notes
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com, Bob@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-27 16:30:00
+|
+---
+[08/21/25 15:27]
+--- "Thanks, Carol. The diagram is very helpful. I have a questio.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Data Model Meeting Notes
+|
+---
+[08/21/25 15:27]
+--- David@example.com
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com, Alice@example.com, Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-27 17:00:00
+|
+---
+[08/21/25 15:27]
+--- "Yes, "last login" would be useful for usage analysis and sec.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Data Model Meeting Notes
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com, Alice@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-27 17:15:00
+|
+---
+[08/21/25 15:27]
+--- "Agreed. Let's add that to the model.
+
+Bob
+----------.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - UI Mockups
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-30 14:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi team,
+
+I've put together some initial UI mockups based on.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - UI Mockups
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-30 14:30:00
+|
+---
+[08/21/25 15:27]
+--- "These look great, Alice! I like the clean design. Just a min.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - UI Mockups
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-10-30 15:00:00
+|
+---
+[08/21/25 15:27]
+--- "Agreed with Bob. The mockups are very well done. I also thin.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Development Update
+|
+---
+[08/21/25 15:27]
+--- David@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-02 10:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi all,
+
+Development on the backend is progressing well. We'.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Testing Phase
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Carol@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-09 11:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi team,
+
+We're ready to start the testing phase. Alice, cou.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Testing Phase
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com, Carol@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-09 11:30:00
+|
+---
+[08/21/25 15:27]
+--- "Sure, I'll have a draft test plan ready by tomorrow.
+
+Alice
+.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Test Plan Draft
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com, Carol@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-10 15:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi team,
+
+Please find attached the draft test plan for UI te.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Final Review
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Bob@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-15 10:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi everyone,
+
+Let's schedule a final review meeting for next.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Final Review
+|
+---
+[08/21/25 15:27]
+--- Bob@example.com
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com, Alice@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-15 10:30:00
+|
+---
+[08/21/25 15:27]
+--- "Sounds good, Carol. How about Tuesday at 10 AM?
+
+Bob
+-------.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Final Review
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com, Bob@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-15 11:00:00
+|
+---
+[08/21/25 15:27]
+--- "Tuesday 10 AM works for me.
+
+Alice
+----------.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Final Review
+|
+---
+[08/21/25 15:27]
+--- David@example.com
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com, Bob@example.com, Alice@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-15 11:15:00
+|
+---
+[08/21/25 15:27]
+--- "Confirmed for Tuesday 10 AM.
+
+David
+----------.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Final Review Meeting Agenda
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Bob@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-20 16:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi team,
+
+Here's the agenda for tomorrow's final review meet.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Deployment Notice
+|
+---
+[08/21/25 15:27]
+--- David@example.com
+|
+---
+[08/21/25 15:27]
+--- Alice@example.com, Bob@example.com, Carol@example.com, ExternalTeam@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-28 09:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi all,
+
+Project Alpha has been successfully deployed to the.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Deployment Notice
+|
+---
+[08/21/25 15:27]
+--- ExternalTeam@example.com
+|
+---
+[08/21/25 15:27]
+--- David@example.com, Alice@example.com, Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-28 09:30:00
+|
+---
+[08/21/25 15:27]
+--- "Thanks, David. We've started our integration tests and will .."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Integration Test Results
+|
+---
+[08/21/25 15:27]
+--- ExternalTeam@example.com
+|
+---
+[08/21/25 15:27]
+--- David@example.com, Alice@example.com, Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-29 14:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi team,
+
+The integration tests have been completed. We've i.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Integration Test Results
+|
+---
+[08/21/25 15:27]
+--- David@example.com
+|
+---
+[08/21/25 15:27]
+--- ExternalTeam@example.com, Alice@example.com, Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-29 14:30:00
+|
+---
+[08/21/25 15:27]
+--- "Thanks for the report. We'll investigate the authentication .."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Authentication Fix Deployed
+|
+---
+[08/21/25 15:27]
+--- David@example.com
+|
+---
+[08/21/25 15:27]
+--- ExternalTeam@example.com, Alice@example.com, Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-30 10:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi ExternalTeam,
+
+The authentication issue has been resolved.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - Authentication Fix Deployed
+|
+---
+[08/21/25 15:27]
+--- ExternalTeam@example.com
+|
+---
+[08/21/25 15:27]
+--- David@example.com, Alice@example.com, Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-30 10:30:00
+|
+---
+[08/21/25 15:27]
+--- "Thanks, David. We're re-running the tests now.
+
+ExternalTeam.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Integration Tests Passed
+|
+---
+[08/21/25 15:27]
+--- ExternalTeam@example.com
+|
+---
+[08/21/25 15:27]
+--- David@example.com, Alice@example.com, Bob@example.com, Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-11-30 12:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi team,
+
+The integration tests have now passed successfully.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - Official Launch Announcement
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com
+|
+---
+[08/21/25 15:27]
+--- AllEmployees@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-12-01 09:00:00
+|
+---
+[08/21/25 15:27]
+--- "Dear Employees,
+
+We are excited to announce the official lau.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Project Alpha - User Feedback
+|
+---
+[08/21/25 15:27]
+--- User1@example.com
+|
+---
+[08/21/25 15:27]
+--- Carol@example.com, Alice@example.com, Bob@example.com, David@example.com
+|
+---
+[08/21/25 15:27]
+--- 2023-12-05 14:00:00
+|
+---
+[08/21/25 15:27]
+--- "Hi Team,
+
+I've been using Project Alpha for a few days now. .."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+--- Re: Project Alpha - User Feedback
+|
+---
+[08/21/25 15:27]
+--- David@example.com
+|
+---
+[08/21/25 15:27]
+--- User1@example.com, Carol@example.com, Alice@example.com, Bob@example.com.
+|
+---
+[08/21/25 15:27]
+--- 2023-12-05 14:30:00
+|
+---
+[08/21/25 15:27]
+--- "Hi User1,
+
+Thanks for your feedback. We're investigating the.."
+|
+---
+[08/21/25 15:27]
+--- No Attachments
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- parsing..
+|
+---
+[08/21/25 15:27]
+-- done
+|
+---
+[08/21/25 15:27]
+-- extraction complete
+|
+---
+[08/21/25 15:27]
+-- exporting..
+|
+---
+[08/21/25 15:27]
+
+- EXPORT COMPLETE -
+
+---
