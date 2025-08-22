@@ -4,9 +4,7 @@ Welcome to my portfolio of software development projects. This repository showca
 
 ---
 
-## Featured Projects
-
-Here are some of the key projects in this collection:
+## Featured Projects:
 
 ### 🤖 AutoAgent - Autonomous AI Agent Platform
 *   **What it is:** A web-based platform that allows a user to deploy an autonomous AI agent to perform complex tasks like research and coding. The agent operates on an OODA loop, making its own decisions to achieve a high-level goal.
