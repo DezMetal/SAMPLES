@@ -48,6 +48,12 @@ Welcome to my portfolio of software development projects. This repository showca
 *   **Key Skills:** Game Architecture, Tool Development, GDScript
 *   **[Go to Project &raquo;](./Adv2DComponents/)**
 
+### 🔊 StreamAudio - Dynamic TTS Voice Module
+*   **What it is:** A versatile and highly configurable text-to-speech (TTS) module for Python, designed to produce more natural and "organic" sounding speech using the Piper TTS engine and Perlin noise for procedural dynamics.
+*   **Tech Stack:** Python, Piper TTS, `pyaudio`
+*   **Key Skills:** Text-to-Speech (TTS) Integration, Procedural Audio Generation, CLI Tool Development
+*   **[Go to Project &raquo;](./StreamAudio/)**
+
 ### 🔊 AudioTransmit - Data Over Audio
 *   **What it is:** A tool for transmitting and receiving data wirelessly between nearby devices using sound. It uses a key-based frequency mapping to ensure only clients with the correct key can decode the signal.
 *   **Tech Stack:** Python, `pyaudio`, `numpy`
