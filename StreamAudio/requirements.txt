@@ -1,0 +1,8 @@
+numpy
+sounddevice
+piper-tts
+audiotsm
+scipy
+perlin-noise
+rich
+pyaudio

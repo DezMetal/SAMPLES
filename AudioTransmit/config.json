@@ -3,8 +3,8 @@
   "waveform": "sine",
   "base_frequency_hz": 12875.0,
   "frequency_step_hz": 46.875,
-  "chunk_duration_s": 0.025,
+  "chunk_duration_s": 0.03,
   "data_bits_per_tone": 4,
-  "amplitude_threshold": 5.0,
-  "preamble_repetitions": 7
+  "amplitude_threshold": 6.0,
+  "preamble_repetitions": 6
 }

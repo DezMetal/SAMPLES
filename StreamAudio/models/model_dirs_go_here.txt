@@ -1,0 +1,9 @@
+Use .onnx models here.
+
+/StreamAudio
+---/models *you are here*
+------/Model_Name
+---------model.onnx
+---------model_config.json
+---------model_card.txt
+
